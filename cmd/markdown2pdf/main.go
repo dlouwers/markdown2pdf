@@ -6,6 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dlouwers/markdown2pdf/internal/parser"
+	"github.com/dlouwers/markdown2pdf/internal/pdf"
+	"github.com/dlouwers/markdown2pdf/internal/renderer"
 )
 
 // Set by ldflags at build time.
@@ -70,8 +74,32 @@ func run(args []string) int {
 		output = strings.TrimSuffix(input, ext) + ".pdf"
 	}
 
-	// TODO: Phase 2 — parse markdown and generate PDF.
-	fmt.Printf("converting %s → %s\n", input, output)
+	// Read the markdown source.
+	source, err := os.ReadFile(input)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: reading input: %v\n", err)
+		return 1
+	}
 
+	// Parse markdown to AST.
+	node, src := parser.Parse(source)
+
+	// Create PDF document.
+	doc := pdf.NewDocument()
+
+	// Render AST to PDF.
+	r := renderer.New()
+	if err := r.Render(doc, node, src); err != nil {
+		fmt.Fprintf(os.Stderr, "error: rendering PDF: %v\n", err)
+		return 1
+	}
+
+	// Save the PDF.
+	if err := doc.Save(output); err != nil {
+		fmt.Fprintf(os.Stderr, "error: saving PDF: %v\n", err)
+		return 1
+	}
+
+	fmt.Printf("converted %s → %s\n", input, output)
 	return 0
 }

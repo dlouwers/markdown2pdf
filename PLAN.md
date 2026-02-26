@@ -1,7 +1,7 @@
 # markdown2pdf — Implementation Plan
 
 > Referenced from [AGENTS.md](./AGENTS.md) stage 1.
-> Status: **DRAFT — awaiting user verification before implementation.**
+Status: **Phase 2 complete. Phase 3 next.**
 
 ---
 
@@ -134,23 +134,21 @@ markdown2pdf/
 
 ## 4. Implementation Phases
 
-### Phase 1: Project Scaffolding
-- [ ] `go mod init github.com/dlouwers/markdown2pdf` (adjust module path as needed)
-- [ ] Set up project directory structure
-- [ ] DevContainer configuration (Go 1.22+, mermaid-cli, golangci-lint)
-- [ ] Basic CLI that reads a markdown file path and output PDF path
-- [ ] CI workflow (lint + test + build)
-
-### Phase 2: Core Markdown → PDF
-- [ ] Goldmark parser with GFM extensions
-- [ ] AST walker skeleton
-- [ ] PDF document setup (A4, margins, page numbers)
-- [ ] Render: headings (H1–H6 with distinct sizes/weights)
-- [ ] Render: paragraphs with word-wrapping
-- [ ] Render: inline styles (bold, italic, code, links)
-- [ ] Render: horizontal rules
-- [ ] Render: blockquotes (indented, left-border styled)
-
+### Phase 1: Project Scaffolding ✅
+- [x] `go mod init github.com/dlouwers/markdown2pdf` (adjust module path as needed)
+- [x] Set up project directory structure
+- [x] DevContainer configuration (Go 1.22+, mermaid-cli, golangci-lint)
+- [x] Basic CLI that reads a markdown file path and output PDF path
+- [x] CI workflow (lint + test + build)
+### Phase 2: Core Markdown → PDF ✅
+- [x] Goldmark parser with GFM extensions
+- [x] AST walker skeleton
+- [x] PDF document setup (A4, margins, page numbers)
+- [x] Render: headings (H1–H6 with distinct sizes/weights)
+- [x] Render: paragraphs with word-wrapping
+- [x] Render: inline styles (bold, italic, code, links)
+- [x] Render: horizontal rules
+- [x] Render: blockquotes (indented, left-border styled)
 ### Phase 3: Code Blocks
 - [ ] Chroma integration — tokenize by language
 - [ ] Render tokens with colored monospace text in PDF
