@@ -203,7 +203,7 @@ func renderImagePlaceholder(state *renderState, label, reason string) {
 
 	state.fpdf.SetFont(pdf.FontBody, "I", pdf.FontSizeBody-1)
 	state.fpdf.SetTextColor(150, 150, 150)
-	text := fmt.Sprintf("[Image: %s — %s]", label, reason)
+	text := fmt.Sprintf("[Image: %s \u2014 %s]", label, reason)
 	state.fpdf.SetXY(left+pdf.CodeBlockPadding, y+pdf.CodeBlockPadding)
 	state.fpdf.Write(pdf.LineHeight, text)
 

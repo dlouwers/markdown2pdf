@@ -53,10 +53,8 @@ func renderListItem(state *renderState, list *ast.List, item *ast.ListItem, sour
 		case *ast.List:
 			renderList(state, n, source, depth+1)
 		default:
-			if container, ok := child.(ast.Node); ok {
-				renderInline(state, container, source)
-				state.fpdf.Ln(pdf.LineHeight)
-			}
+			renderInline(state, child, source)
+			state.fpdf.Ln(pdf.LineHeight)
 		}
 	}
 	state.fpdf.Ln(pdf.ListItemSpacing)
@@ -79,10 +77,10 @@ func listStartNumber(list *ast.List, item *ast.ListItem) int {
 
 func drawBullet(state *renderState, x, y float64, depth int) {
 	size := pdf.ListBulletSize
-	switch {
-	case depth == 0:
+	switch depth {
+	case 0:
 		state.fpdf.Circle(x+size, y, size, "F")
-	case depth == 1:
+	case 1:
 		state.fpdf.Circle(x+size, y, size-0.5, "D")
 	default:
 		state.fpdf.Rect(x+size-0.75, y-0.75, 1.5, 1.5, "F")

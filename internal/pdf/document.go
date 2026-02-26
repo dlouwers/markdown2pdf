@@ -16,6 +16,7 @@ type Document struct {
 func NewDocument() *Document {
 	pdfDoc := fpdf.New("P", "mm", "A4", "")
 	doc := &Document{pdf: pdfDoc}
+	RegisterFonts(pdfDoc)
 
 	pdfDoc.SetMargins(PageMargin, PageMargin, PageMargin)
 	pdfDoc.SetAutoPageBreak(true, PageMargin)

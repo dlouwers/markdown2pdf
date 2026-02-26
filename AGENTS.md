@@ -18,3 +18,6 @@ This is to be an application that converts markdown with codeblocks to good look
 # Working Directory
 Project root: `/Users/dirk/Documents/projects/markdown2pdf`
 All shell commands must use this as the working directory.
+
+# Go Version
+This project uses **Go 1.25**. The devcontainer image is `mcr.microsoft.com/devcontainers/go:1.25` and `GOTOOLCHAIN=auto` is set so toolchain downloads happen automatically. Do not upgrade to a newer Go version without explicit approval.

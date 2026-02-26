@@ -152,7 +152,7 @@ func renderInline(state *renderState, container ast.Node, source []byte) {
 func renderInlineNode(state *renderState, node ast.Node, source []byte) {
 	switch n := node.(type) {
 	case *ast.Text:
-		text := string(n.Text(source))
+		text := string(n.Value(source))
 		if !strings.Contains(text, "\n") {
 			writeText(state, text)
 			if n.SoftLineBreak() {
@@ -191,7 +191,7 @@ func renderInlineNode(state *renderState, node ast.Node, source []byte) {
 		state.pushStyle()
 		state.style.code = true
 		applyFont(state)
-		codeText := string(n.Text(source))
+		codeText := collectCodeSpanText(n, source)
 		writeCode(state, codeText)
 		state.popStyle()
 		applyFont(state)
@@ -291,9 +291,11 @@ func collectInlineText(container ast.Node, source []byte) string {
 	walk = func(n ast.Node) {
 		switch n.Kind() {
 		case ast.KindText:
-			builder.WriteString(string(n.Text(source)))
+			if t, ok := n.(*ast.Text); ok {
+				builder.WriteString(string(t.Value(source)))
+			}
 		case ast.KindCodeSpan:
-			builder.WriteString(string(n.Text(source)))
+			builder.WriteString(collectCodeSpanText(n, source))
 		default:
 			for child := n.FirstChild(); child != nil; child = child.NextSibling() {
 				walk(child)
@@ -302,6 +304,18 @@ func collectInlineText(container ast.Node, source []byte) string {
 	}
 	for child := container.FirstChild(); child != nil; child = child.NextSibling() {
 		walk(child)
+	}
+	return builder.String()
+}
+
+// collectCodeSpanText gathers text content from a CodeSpan node's children.
+// This avoids using the deprecated n.Text(source) method on CodeSpan nodes.
+func collectCodeSpanText(n ast.Node, source []byte) string {
+	var builder strings.Builder
+	for child := n.FirstChild(); child != nil; child = child.NextSibling() {
+		if t, ok := child.(*ast.Text); ok {
+			builder.WriteString(string(t.Value(source)))
+		}
 	}
 	return builder.String()
 }

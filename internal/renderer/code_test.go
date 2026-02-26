@@ -46,11 +46,11 @@ func TestFencedCodeBlockRenders(t *testing.T) {
 	}
 }
 
-func TestFencedCodeBlockWithLanguage(t *testing.T) {
+func TestFencedCodeBlockWithMonoFont(t *testing.T) {
 	source := []byte("```go\npackage main\n\nfunc main() {}\n```")
 	data := renderPDF(t, source, true)
-	if !strings.Contains(string(data), "Courier") {
-		t.Fatalf("expected Courier font in PDF output")
+	if !strings.Contains(string(data), "utf8notosansmono") {
+		t.Fatalf("expected NotoSansMono font in PDF output")
 	}
 }
 

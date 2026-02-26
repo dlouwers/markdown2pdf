@@ -3,8 +3,8 @@ package pdf
 import "github.com/go-pdf/fpdf"
 
 const (
-	FontBody = "Helvetica"
-	FontCode = "Courier"
+	FontBody = "NotoSans"
+	FontCode = "NotoSansMono"
 
 	FontSizeBody = 11.0
 	FontSizeH1   = 24.0
