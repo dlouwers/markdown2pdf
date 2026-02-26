@@ -28,16 +28,18 @@ func run(args []string) int {
 	fs := flag.NewFlagSet("markdown2pdf", flag.ContinueOnError)
 
 	var (
-		output      string
-		showVersion bool
-		toc         bool
-		fontPath    string
+		output         string
+		showVersion    bool
+		toc            bool
+		fontPath       string
+		symbolsFontPath string
 	)
 
 	fs.StringVar(&output, "o", "", "output PDF file path (default: input with .pdf extension)")
 	fs.BoolVar(&showVersion, "version", false, "print version information and exit")
 	fs.BoolVar(&toc, "toc", false, "generate a table of contents")
 	fs.StringVar(&fontPath, "font", "", "path to a .zip or .tar.gz archive containing TTF font files")
+	fs.StringVar(&symbolsFontPath, "symbols-font", "", "path to a .zip or .tar.gz archive containing a TTF symbols fallback font")
 
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -92,6 +94,9 @@ func run(args []string) int {
 	var opts []pdf.DocumentOption
 	if fontPath != "" {
 		opts = append(opts, pdf.WithCustomFont(fontPath))
+	}
+	if symbolsFontPath != "" {
+		opts = append(opts, pdf.WithCustomSymbolsFont(symbolsFontPath))
 	}
 	doc, err := pdf.NewDocument(opts...)
 	if err != nil {

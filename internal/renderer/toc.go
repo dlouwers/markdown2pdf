@@ -27,7 +27,7 @@ func collectTOCEntries(node ast.Node, source []byte, state *renderState) []tocEn
 		}
 		linkID := state.fpdf.AddLink()
 		entries = append(entries, tocEntry{
-			text:   collectInlineText(heading, source),
+		text:   pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), collectInlineText(heading, source)),
 			level:  heading.Level,
 			linkID: linkID,
 		})
@@ -66,9 +66,19 @@ func renderTOC(state *renderState, entries []tocEntry) {
 			fontSize = pdf.FontSizeBody - 1
 		}
 
-		state.fpdf.SetFont(pdf.FontBody, fontStyle, fontSize)
 		state.fpdf.SetTextColor(pdf.ColorLink.R, pdf.ColorLink.G, pdf.ColorLink.B)
-		state.fpdf.WriteLinkID(pdf.LineHeight, entry.text, entry.linkID)
+
+		// Render TOC entry with font-segment awareness for symbols.
+		segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), entry.text)
+		for _, seg := range segments {
+			if seg.Kind == pdf.FontKindSymbols {
+				state.fpdf.SetFont(pdf.FontSymbols, fontStyle, fontSize)
+			} else {
+				state.fpdf.SetFont(pdf.FontBody, fontStyle, fontSize)
+			}
+			state.fpdf.WriteLinkID(pdf.LineHeight, seg.Text, entry.linkID)
+		}
+
 		state.fpdf.Ln(pdf.LineHeight + 1)
 		state.fpdf.SetTextColor(pdf.ColorText.R, pdf.ColorText.G, pdf.ColorText.B)
 	}

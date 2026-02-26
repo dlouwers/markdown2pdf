@@ -14,6 +14,7 @@ Convert Markdown documents to clean, professional PDFs — with syntax-highlight
 - **Table of contents** — optional `--toc` flag with clickable links
 - **Orphan protection** — headings never appear stranded at the bottom of a page
 - **Noto Sans font** — embedded for full UTF-8 support (override with `--font`)
+- **Symbol font fallback** — embedded Noto Sans Symbols 2 renders glyphs the body font lacks (override with `--symbols-font`)
 - **Single static binary** — no runtime dependencies (except `mmdc` for Mermaid)
 
 ## Installation
@@ -52,9 +53,21 @@ markdown2pdf --toc document.md
 # Print version
 markdown2pdf --version
 
-# Use a custom font (zip or tar.gz with TTF files)
+# Use a custom body font (zip or tar.gz with TTF files)
 markdown2pdf --font /path/to/MyFont.zip document.md
+
+# Use a custom symbols fallback font
+markdown2pdf --symbols-font /path/to/Symbols.tar.gz document.md
 ```
+
+
+## Fonts
+
+**Body font**: [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) is embedded by default for full UTF-8 coverage. Override with `--font` pointing to a zip or tar.gz archive containing TTF files (Regular, Bold, Italic, BoldItalic variants are auto-detected by filename).
+
+**Symbols fallback**: [Noto Sans Symbols 2](https://fonts.google.com/noto/specimen/Noto+Sans+Symbols+2) is embedded as the default fallback. When the body font lacks a glyph, the symbols font is tried automatically. Override with `--symbols-font`.
+
+**Text substitution**: Glyphs that neither font supports (e.g. color emoji like 🚀) are replaced with ASCII equivalents (e.g. `[>]`).
 
 ## Diagram support
 

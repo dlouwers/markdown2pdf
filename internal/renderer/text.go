@@ -81,11 +81,23 @@ func renderNode(state *renderState, node ast.Node, source []byte) error {
 }
 
 func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
+	size := headingFontSize(heading.Level)
+	lineH := pdf.HeadingLineHeight(size)
+	spaceBefore := pdf.HeadingSpaceBefore(heading.Level)
+	spaceAfter := pdf.HeadingSpaceAfter(heading.Level)
+
+	// Pre-calculate heading text height for orphan protection.
+	state.fpdf.SetFont(pdf.FontBody, "B", size)
+	text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), collectInlineText(heading, source))
+	left, _, right, _ := state.fpdf.GetMargins()
+	pageW, _ := state.fpdf.GetPageSize()
+	textWidth := pageW - left - right
+	lines := state.fpdf.SplitLines([]byte(text), textWidth)
+	headingHeight := spaceBefore + float64(len(lines))*lineH + spaceAfter
+
 	// Orphan protection: ensure heading + at least one body line fit on the
 	// current page. A heading stranded at the bottom looks bad.
-	size := headingFontSize(heading.Level)
-	headingHeight := 2 + (pdf.LineHeight + 1) + 2 // Ln(2) + MultiCell line + Ln(2)
-	bodyLine := pdf.LineHeight                     // at least one line of following content
+	bodyLine := pdf.LineHeight
 	needed := headingHeight + bodyLine
 
 	_, topMargin, _, bottomMargin := state.fpdf.GetMargins()
@@ -104,11 +116,15 @@ func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
 		state.tocLinkIdx++
 	}
 
-	state.fpdf.Ln(2)
+	state.fpdf.Ln(spaceBefore)
 	state.fpdf.SetFont(pdf.FontBody, "B", size)
-	text := collectInlineText(heading, source)
-	state.fpdf.MultiCell(0, pdf.LineHeight+1, text, "", "", false)
-	state.fpdf.Ln(2)
+	for i, line := range lines {
+		state.fpdf.Write(lineH, string(line))
+		if i < len(lines)-1 {
+			state.fpdf.Ln(lineH)
+		}
+	}
+	state.fpdf.Ln(spaceAfter)
 	resetFont(state)
 }
 
@@ -179,7 +195,7 @@ func renderInlineNode(state *renderState, node ast.Node, source []byte) {
 		text := string(n.Value(source))
 		if !strings.Contains(text, "\n") {
 			writeText(state, text)
-			if n.SoftLineBreak() {
+			if n.HardLineBreak() || n.SoftLineBreak() {
 				state.fpdf.Ln(pdf.LineHeight)
 			}
 			return
@@ -193,7 +209,7 @@ func renderInlineNode(state *renderState, node ast.Node, source []byte) {
 				state.fpdf.Ln(pdf.LineHeight)
 			}
 		}
-		if n.SoftLineBreak() {
+		if n.HardLineBreak() || n.SoftLineBreak() {
 			state.fpdf.Ln(pdf.LineHeight)
 		}
 	case *ast.Emphasis:
@@ -274,12 +290,44 @@ func writeText(state *renderState, text string) {
 	if text == "" {
 		return
 	}
-	applyFont(state)
+	segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), text)
+	for _, seg := range segments {
+		if seg.Kind == pdf.FontKindSymbols {
+			// Temporarily switch to symbols font, preserving style.
+			writeSymbolsSegment(state, seg.Text)
+		} else {
+			applyFont(state)
+			if state.style.linkDest != "" {
+				state.fpdf.WriteLinkString(pdf.LineHeight, seg.Text, state.style.linkDest)
+			} else {
+				state.fpdf.Write(pdf.LineHeight, seg.Text)
+			}
+		}
+	}
+}
+
+// writeSymbolsSegment renders text using the symbols fallback font, preserving
+// the current bold/italic style indicators.
+func writeSymbolsSegment(state *renderState, text string) {
+	style := ""
+	if state.style.bold {
+		style += "B"
+	}
+	if state.style.italic {
+		style += "I"
+	}
+	size := pdf.FontSizeBody
+	if state.style.linkDest != "" {
+		style += "U"
+		state.fpdf.SetTextColor(pdf.ColorLink.R, pdf.ColorLink.G, pdf.ColorLink.B)
+	}
+	state.fpdf.SetFont(pdf.FontSymbols, style, size)
 	if state.style.linkDest != "" {
 		state.fpdf.WriteLinkString(pdf.LineHeight, text, state.style.linkDest)
-		return
+	} else {
+		state.fpdf.Write(pdf.LineHeight, text)
 	}
-	state.fpdf.Write(pdf.LineHeight, text)
+	applyFont(state) // restore body font
 }
 
 func writeCode(state *renderState, text string) {

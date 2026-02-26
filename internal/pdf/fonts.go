@@ -34,6 +34,9 @@ var notoSansMonoRegular []byte
 //go:embed fonts/NotoSansMono-Bold.ttf
 var notoSansMonoBold []byte
 
+//go:embed fonts/NotoSansSymbols2-Regular.ttf
+var notoSansSymbols2Regular []byte
+
 // RegisterFonts registers the embedded Noto Sans font families with the PDF
 // document. After registration, FontBody and FontCode constants can be used
 // with SetFont as usual. It returns the regular body font bytes for glyph
@@ -48,6 +51,55 @@ func RegisterFonts(pdf *fpdf.Fpdf) []byte {
 	pdf.AddUTF8FontFromBytes(FontCode, "B", notoSansMonoBold)
 
 	return notoSansRegular
+}
+
+// RegisterSymbolsFont registers the embedded Noto Sans Symbols 2 font as a
+// fallback font family for rendering glyphs the body font doesn't support.
+// It returns the symbols font bytes for glyph detection.
+func RegisterSymbolsFont(pdf *fpdf.Fpdf) []byte {
+	pdf.AddUTF8FontFromBytes(FontSymbols, "", notoSansSymbols2Regular)
+	pdf.AddUTF8FontFromBytes(FontSymbols, "B", notoSansSymbols2Regular)
+	pdf.AddUTF8FontFromBytes(FontSymbols, "I", notoSansSymbols2Regular)
+	pdf.AddUTF8FontFromBytes(FontSymbols, "BI", notoSansSymbols2Regular)
+	return notoSansSymbols2Regular
+}
+
+// LoadCustomSymbolsFont reads a zip or tar.gz archive and registers the first
+// TTF found as the symbols fallback font family. Returns the font bytes.
+func LoadCustomSymbolsFont(pdf *fpdf.Fpdf, archivePath string) ([]byte, error) {
+	data, err := os.ReadFile(archivePath)
+	if err != nil {
+		return nil, fmt.Errorf("read symbols font archive: %w", err)
+	}
+
+	var fonts map[string][]byte
+	lower := strings.ToLower(archivePath)
+	switch {
+	case strings.HasSuffix(lower, ".zip"):
+		fonts, err = extractTTFFromZip(data)
+	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
+		fonts, err = extractTTFFromTarGz(data)
+	default:
+		return nil, fmt.Errorf("unsupported archive format: %s (expected .zip or .tar.gz)", archivePath)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("extract symbols fonts: %w", err)
+	}
+	if len(fonts) == 0 {
+		return nil, fmt.Errorf("no .ttf files found in %s", archivePath)
+	}
+
+	// Use the first TTF found — symbols fonts typically have one weight.
+	var fontBytes []byte
+	for _, b := range fonts {
+		fontBytes = b
+		break
+	}
+	pdf.AddUTF8FontFromBytes(FontSymbols, "", fontBytes)
+	pdf.AddUTF8FontFromBytes(FontSymbols, "B", fontBytes)
+	pdf.AddUTF8FontFromBytes(FontSymbols, "I", fontBytes)
+	pdf.AddUTF8FontFromBytes(FontSymbols, "BI", fontBytes)
+	return fontBytes, nil
 }
 
 // FontSupportsGlyph checks whether the given TTF font data contains a glyph

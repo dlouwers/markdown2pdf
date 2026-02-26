@@ -11,7 +11,8 @@ import (
 type DocumentOption func(*documentConfig)
 
 type documentConfig struct {
-	customFontArchive string
+	customFontArchive   string
+	customSymbolsArchive string
 }
 
 // WithCustomFont returns an option that loads fonts from a zip or tar.gz
@@ -22,11 +23,20 @@ func WithCustomFont(archivePath string) DocumentOption {
 	}
 }
 
+// WithCustomSymbolsFont returns an option that loads a symbols fallback font
+// from a zip or tar.gz archive instead of the default embedded Noto Sans Symbols 2.
+func WithCustomSymbolsFont(archivePath string) DocumentOption {
+	return func(c *documentConfig) {
+		c.customSymbolsArchive = archivePath
+	}
+}
+
 type Document struct {
-	pdf           *fpdf.Fpdf
-	footerCalls   int
-	baseDir       string
-	bodyFontBytes []byte // regular body font TTF bytes for glyph detection
+	pdf              *fpdf.Fpdf
+	footerCalls      int
+	baseDir          string
+	bodyFontBytes    []byte // regular body font TTF bytes for glyph detection
+	symbolsFontBytes []byte // symbols fallback font TTF bytes for glyph detection
 }
 
 func NewDocument(opts ...DocumentOption) (*Document, error) {
@@ -49,6 +59,17 @@ func NewDocument(opts ...DocumentOption) (*Document, error) {
 		pdfDoc.AddUTF8FontFromBytes(FontCode, "B", notoSansMonoBold)
 	} else {
 		doc.bodyFontBytes = RegisterFonts(pdfDoc)
+	}
+
+	// Register symbols fallback font.
+	if cfg.customSymbolsArchive != "" {
+		symBytes, err := LoadCustomSymbolsFont(pdfDoc, cfg.customSymbolsArchive)
+		if err != nil {
+			return nil, fmt.Errorf("load custom symbols font: %w", err)
+		}
+		doc.symbolsFontBytes = symBytes
+	} else {
+		doc.symbolsFontBytes = RegisterSymbolsFont(pdfDoc)
 	}
 
 	pdfDoc.SetMargins(PageMargin, PageMargin, PageMargin)
@@ -93,4 +114,10 @@ func (d *Document) SetBaseDir(dir string) {
 // used for glyph detection (e.g. checking if bullet characters exist).
 func (d *Document) BodyFontBytes() []byte {
 	return d.bodyFontBytes
+}
+
+// SymbolsFontBytes returns the raw TTF bytes of the symbols fallback font,
+// used for glyph detection when the body font lacks a glyph.
+func (d *Document) SymbolsFontBytes() []byte {
+	return d.symbolsFontBytes
 }

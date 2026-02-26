@@ -102,6 +102,15 @@ func drawBullet(state *renderState, labelLeft, labelRight, y float64, depth int)
 		return
 	}
 
+	// Try the symbols fallback font.
+	if symBytes := state.doc.SymbolsFontBytes(); len(symBytes) > 0 && pdf.FontSupportsGlyph(symBytes, bulletRune) {
+		state.fpdf.SetFont(pdf.FontSymbols, "", pdf.FontSizeBody)
+		bulletW := state.fpdf.GetStringWidth(string(bulletRune))
+		state.fpdf.Text(cx-bulletW/2, y+1, string(bulletRune))
+		state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeBody) // restore
+		return
+	}
+
 	// Geometric fallback when the font lacks the glyph.
 	// Sizes derived from actual Noto Sans glyph bounds at 11pt body:
 	//   • (U+2022) visible ~0.86×0.96mm  → circle r≈0.45mm
