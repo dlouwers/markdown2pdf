@@ -12,7 +12,7 @@ require (
 
 require (
 	github.com/dlclark/regexp2 v1.11.5 // indirect
-	golang.org/x/image v0.12.0 // indirect
+	golang.org/x/image v0.18.0 // indirect
 	golang.org/x/net v0.6.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 )
