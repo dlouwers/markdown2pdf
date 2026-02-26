@@ -31,6 +31,18 @@ func renderListItem(state *renderState, list *ast.List, item *ast.ListItem, sour
 	textStart := indent + pdf.ListLabelWidth + pdf.ListLabelSep
 	labelRight := indent + pdf.ListLabelWidth // right edge of label box
 
+	// Orphan protection: ensure the bullet + at least the first line of
+	// text fit on the current page. Without this check, the bullet is drawn
+	// with Text() at an absolute Y position while renderInline's Write()
+	// auto-paginates, leaving the bullet stranded on the previous page.
+	minItemH := pdf.LineHeight + pdf.ListItemSpacing
+	_, pageH := state.fpdf.GetPageSize()
+	_, _, _, bottomMargin := state.fpdf.GetMargins()
+	remaining := pageH - bottomMargin - state.fpdf.GetY()
+	if minItemH > remaining {
+		state.fpdf.AddPage()
+	}
+
 	state.fpdf.SetX(indent)
 	startY := state.fpdf.GetY() + pdf.LineHeight/2
 

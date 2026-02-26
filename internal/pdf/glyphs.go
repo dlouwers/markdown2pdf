@@ -45,12 +45,24 @@ var emojiSubstitutions = map[rune]string{
 	'❤': "[<3]",
 	'♥': "[<3]",
 
-	// Arrows
-	'➡': "->",
-	'⬅': "<-",
-	'⬆': "^",
-	'⬇': "v",
-	'↔': "<->",
+	// Arrows (Unicode Arrows block U+2190-U+21FF — not in our Noto fonts)
+	'\u2190': "<-",  // ← LEFTWARDS ARROW
+	'\u2191': "^",   // ↑ UPWARDS ARROW
+	'\u2192': "->",  // → RIGHTWARDS ARROW
+	'\u2193': "v",   // ↓ DOWNWARDS ARROW
+	'\u21D0': "<=", // ⇐ LEFTWARDS DOUBLE ARROW
+	'\u21D1': "^^",  // ⇑ UPWARDS DOUBLE ARROW
+	'\u21D2': "=>",  // ⇒ RIGHTWARDS DOUBLE ARROW
+	'\u21D3': "vv",  // ⇓ DOWNWARDS DOUBLE ARROW
+	'\u21D4': "<=>", // ⇔ LEFT RIGHT DOUBLE ARROW
+	'\u21A9': "<-'", // ↩ LEFTWARDS ARROW WITH HOOK
+	'\u21AA': "'->", // ↪ RIGHTWARDS ARROW WITH HOOK
+	// Heavy/filled arrows (Dingbats/Misc blocks)
+	'\u27A1': "->",  // ➡ BLACK RIGHTWARDS ARROW
+	'\u2B05': "<-",  // ⬅ LEFT BLACK ARROW
+	'\u2B06': "^",   // ⬆ UPWARDS BLACK ARROW
+	'\u2B07': "v",   // ⬇ DOWNWARDS BLACK ARROW
+	'\u2194': "<->", // ↔ LEFT RIGHT ARROW
 
 	// Misc symbols
 	'🔴': "(R)",
