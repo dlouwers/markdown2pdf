@@ -1,7 +1,7 @@
 # markdown2pdf — Implementation Plan
 
 > Referenced from [AGENTS.md](./AGENTS.md) stage 1.
-Status: **Phase 2 complete. Phase 3 next.**
+Status: **Phase 3 complete. Phase 4 next.**
 
 ---
 
@@ -149,12 +149,11 @@ markdown2pdf/
 - [x] Render: inline styles (bold, italic, code, links)
 - [x] Render: horizontal rules
 - [x] Render: blockquotes (indented, left-border styled)
-### Phase 3: Code Blocks
-- [ ] Chroma integration — tokenize by language
-- [ ] Render tokens with colored monospace text in PDF
-- [ ] Code block background shading
+### Phase 3: Code Blocks ✅
+- [x] Chroma integration — tokenize by language
+- [x] Render tokens with colored monospace text in PDF
+- [x] Code block background shading
 - [ ] Line numbers (optional, off by default)
-
 ### Phase 4: Lists & Tables
 - [ ] Unordered lists (nested, with bullet styles)
 - [ ] Ordered lists (nested, with numbering)

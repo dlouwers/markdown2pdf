@@ -20,6 +20,10 @@ const (
 
 	BlockquoteIndent = 10.0
 	BlockquoteBar    = 2.0
+
+	FontSizeCode     = 9.0
+	CodeBlockPadding = 6.0
+	CodeBlockMarginV = 4.0
 )
 
 var (
@@ -27,4 +31,6 @@ var (
 	ColorLink       = fpdf.RGBType{R: 20, G: 90, B: 200}
 	ColorBlockquote = fpdf.RGBType{R: 230, G: 230, B: 230}
 	ColorCodeFill   = fpdf.RGBType{R: 240, G: 240, B: 240}
+	ColorCodeBlockBG     = fpdf.RGBType{R: 245, G: 245, B: 245}
+	ColorCodeBlockBorder = fpdf.RGBType{R: 220, G: 220, B: 220}
 )

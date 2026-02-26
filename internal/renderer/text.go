@@ -47,6 +47,16 @@ func renderNode(state *renderState, node ast.Node, source []byte) error {
 				renderThematicBreak(state)
 			}
 			return ast.WalkSkipChildren, nil
+		case *ast.FencedCodeBlock:
+			if entering {
+				renderCodeBlock(state, n, source)
+			}
+			return ast.WalkSkipChildren, nil
+		case *ast.CodeBlock:
+			if entering {
+				renderCodeBlock(state, n, source)
+			}
+			return ast.WalkSkipChildren, nil
 		case *ast.Blockquote:
 			if entering {
 				renderBlockquote(state, n, source)
