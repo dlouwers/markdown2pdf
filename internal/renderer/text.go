@@ -212,6 +212,8 @@ func renderInlineNode(state *renderState, node ast.Node, source []byte) {
 		writeText(state, text)
 		state.popStyle()
 		applyFont(state)
+	case *ast.Image:
+		renderImage(state, n, source)
 	default:
 		renderInline(state, node, source)
 	}

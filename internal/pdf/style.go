@@ -32,6 +32,9 @@ const (
 	TableCellPadding = 3.0
 	TableBorderWidth = 0.3
 	FontSizeTable    = 10.0
+
+	ImageMarginV    = 4.0
+	SVGRenderScale  = 2.0
 )
 
 var (

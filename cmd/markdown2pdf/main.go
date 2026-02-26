@@ -86,6 +86,7 @@ func run(args []string) int {
 
 	// Create PDF document.
 	doc := pdf.NewDocument()
+	doc.SetBaseDir(filepath.Dir(input))
 
 	// Render AST to PDF.
 	r := renderer.New()

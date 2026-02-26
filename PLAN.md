@@ -1,7 +1,7 @@
 # markdown2pdf — Implementation Plan
 
 > Referenced from [AGENTS.md](./AGENTS.md) stage 1.
-Status: **Phase 4 complete. Phase 5 next.**
+Status: **Phase 5 complete. Phase 6 next.**
 
 ---
 
@@ -160,12 +160,11 @@ markdown2pdf/
 - [x] Task lists (checkbox rendering)
 - [x] GFM tables with borders, header styling, column alignment
 
-### Phase 5: Images
-- [ ] Embedded PNG support (inline `![alt](path)`)
-- [ ] Embedded SVG support (rasterize via oksvg → PNG → embed)
-- [ ] Image scaling to fit page width with aspect ratio preserved
-- [ ] Base64-encoded data URI images
-
+### Phase 5: Images ✅
+- [x] Embedded PNG support (inline `![alt](path)`)
+- [x] Embedded SVG support (rasterize via oksvg → PNG → embed)
+- [x] Image scaling to fit page width with aspect ratio preserved
+- [x] Base64-encoded data URI images
 ### Phase 6: Diagrams
 - [ ] D2 code block detection (` ```d2 `)
 - [ ] D2 → PNG rendering via native Go library

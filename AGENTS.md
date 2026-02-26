@@ -14,3 +14,7 @@ This is to be an application that converts markdown with codeblocks to good look
 - supports embedded Mermaid and D2 diagrams
 - assures that the generated diagrams look good and have the proper "light" look for a pdf document
 - assures that the generated diagrams fit well within the pdf document
+
+# Working Directory
+Project root: `/Users/dirk/Documents/projects/markdown2pdf`
+All shell commands must use this as the working directory.

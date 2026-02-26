@@ -10,6 +10,7 @@ import (
 type Document struct {
 	pdf         *fpdf.Fpdf
 	footerCalls int
+	baseDir     string
 }
 
 func NewDocument() *Document {
@@ -44,4 +45,12 @@ func (d *Document) PDF() *fpdf.Fpdf {
 
 func (d *Document) FooterCalls() int {
 	return d.footerCalls
+}
+
+func (d *Document) BaseDir() string {
+	return d.baseDir
+}
+
+func (d *Document) SetBaseDir(dir string) {
+	d.baseDir = dir
 }
