@@ -6,6 +6,7 @@ const (
 	FontBody = "NotoSans"
 	FontCode = "NotoSansMono"
 	FontSymbols = "NotoSansSymbols2"
+	FontEmoji   = "NotoEmoji"
 
 	FontSizeBody = 11.0
 	FontSizeH1   = 24.0

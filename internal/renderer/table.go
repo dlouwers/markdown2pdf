@@ -130,7 +130,7 @@ func calcRowHeight(state *renderState, row ast.Node, source []byte, widths []flo
 		if !ok {
 			continue
 		}
-		text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), collectInlineText(cellNode, source))
+		text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(cellNode, source))
 		innerW := widths[col] - 2*pdf.TableCellPadding
 		if innerW < 1 {
 			innerW = 1
@@ -158,7 +158,7 @@ func renderRowCells(state *renderState, row ast.Node, source []byte, widths []fl
 		if !ok {
 			continue
 		}
-		text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), collectInlineText(cellNode, source))
+		text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(cellNode, source))
 		align := alignmentForColumn(cellNode, alignments, col)
 		drawTableCell(state, widths[col], rowHeight, text, align, header)
 		col++
@@ -192,7 +192,7 @@ func measureTableColumns(state *renderState, table *extast.Table, source []byte)
 			if !ok {
 				continue
 			}
-			text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), collectInlineText(cellNode, source))
+			text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(cellNode, source))
 			width := state.fpdf.GetStringWidth(text) + 2*pdf.TableCellPadding
 			widths[column] = math.Max(widths[column], width)
 			column++
@@ -245,14 +245,17 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 	textY := y + pdf.TableCellPadding
 	for _, line := range lines {
 		lineStr := string(line)
-		segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), lineStr)
+		segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), lineStr)
 
 		// Calculate total rendered width for alignment.
 		totalW := 0.0
 		for _, seg := range segments {
-			if seg.Kind == pdf.FontKindSymbols {
+			switch seg.Kind {
+			case pdf.FontKindSymbols:
 				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, pdf.FontSizeTable)
-			} else {
+			case pdf.FontKindEmoji:
+				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, pdf.FontSizeTable)
+			default:
 				state.fpdf.SetFont(pdf.FontBody, bodyStyle, pdf.FontSizeTable)
 			}
 			totalW += state.fpdf.GetStringWidth(seg.Text)
@@ -272,9 +275,12 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 		// Render each segment with the appropriate font.
 		curX := startX
 		for _, seg := range segments {
-			if seg.Kind == pdf.FontKindSymbols {
+			switch seg.Kind {
+			case pdf.FontKindSymbols:
 				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, pdf.FontSizeTable)
-			} else {
+			case pdf.FontKindEmoji:
+				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, pdf.FontSizeTable)
+			default:
 				state.fpdf.SetFont(pdf.FontBody, bodyStyle, pdf.FontSizeTable)
 			}
 			state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, seg.Text)

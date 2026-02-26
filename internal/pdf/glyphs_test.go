@@ -5,7 +5,7 @@ import "testing"
 func TestSubstituteUnsupportedGlyphs_ASCII(t *testing.T) {
 	// Pure ASCII should pass through unchanged.
 	in := "Hello, World!"
-	got := SubstituteUnsupportedGlyphs(nil, nil, in)
+	got := SubstituteUnsupportedGlyphs(nil, nil, nil, in)
 	if got != in {
 		t.Errorf("expected %q, got %q", in, got)
 	}
@@ -26,9 +26,9 @@ func TestSubstituteUnsupportedGlyphs_NoFontData(t *testing.T) {
 		{"Mixed ✅ and ❌ text", "Mixed [v] and [x] text"},
 	}
 	for _, tt := range tests {
-		got := SubstituteUnsupportedGlyphs(nil, nil, tt.in)
+		got := SubstituteUnsupportedGlyphs(nil, nil, nil, tt.in)
 		if got != tt.want {
-			t.Errorf("SubstituteUnsupportedGlyphs(nil, nil, %q) = %q, want %q", tt.in, got, tt.want)
+			t.Errorf("SubstituteUnsupportedGlyphs(nil, nil, nil, %q) = %q, want %q", tt.in, got, tt.want)
 		}
 	}
 }
@@ -39,12 +39,12 @@ func TestSubstituteUnsupportedGlyphs_WithFont(t *testing.T) {
 	fontData := notoSansRegular
 
 	// Noto Sans supports '•' (bullet) but not '✅' or '❌'.
-	bullet := SubstituteUnsupportedGlyphs(fontData, nil, "• item")
+	bullet := SubstituteUnsupportedGlyphs(fontData, nil, nil, "• item")
 	if bullet != "• item" {
 		t.Errorf("bullet should not be substituted with Noto Sans: got %q", bullet)
 	}
 
-	check := SubstituteUnsupportedGlyphs(fontData, nil, "✅ Yes")
+	check := SubstituteUnsupportedGlyphs(fontData, nil, nil, "✅ Yes")
 	if check != "[v] Yes" {
 		t.Errorf("check mark should be substituted with Noto Sans: got %q", check)
 	}
@@ -56,19 +56,19 @@ func TestSubstituteUnsupportedGlyphs_WithSymbolsFont(t *testing.T) {
 	symFont := notoSansSymbols2Regular
 
 	// ⚠ (U+26A0) is not in Noto Sans body but IS in Noto Sans Symbols 2.
-	got := SubstituteUnsupportedGlyphs(bodyFont, symFont, "⚠ Warning")
+	got := SubstituteUnsupportedGlyphs(bodyFont, symFont, nil, "⚠ Warning")
 	if got != "⚠ Warning" {
 		t.Errorf("warning sign should be kept when symbols font supports it: got %q", got)
 	}
 
 	// ★ (U+2605) is not in body but IS in symbols.
-	got = SubstituteUnsupportedGlyphs(bodyFont, symFont, "★ star")
+	got = SubstituteUnsupportedGlyphs(bodyFont, symFont, nil, "★ star")
 	if got != "★ star" {
 		t.Errorf("black star should be kept when symbols font supports it: got %q", got)
 	}
 
 	// • (bullet) is in Noto Sans body font; should still be kept.
-	got = SubstituteUnsupportedGlyphs(bodyFont, symFont, "• item")
+	got = SubstituteUnsupportedGlyphs(bodyFont, symFont, nil, "• item")
 	if got != "• item" {
 		t.Errorf("bullet should not be substituted: got %q", got)
 	}
@@ -77,14 +77,14 @@ func TestSubstituteUnsupportedGlyphs_WithSymbolsFont(t *testing.T) {
 func TestSubstituteUnsupportedGlyphs_VariationSelector(t *testing.T) {
 	// U+26A0 (⚠) followed by U+FE0F should produce "[!]" with no
 	// leftover variation selector character.
-	got := SubstituteUnsupportedGlyphs(nil, nil, "\u26A0\uFE0F")
+	got := SubstituteUnsupportedGlyphs(nil, nil, nil, "\u26A0\uFE0F")
 	if got != "[!]" {
 		t.Errorf("expected %q, got %q", "[!]", got)
 	}
 }
 
 func TestSegmentText_ASCII(t *testing.T) {
-	segs := SegmentText(nil, nil, "hello")
+	segs := SegmentText(nil, nil, nil, "hello")
 	if len(segs) != 1 || segs[0].Text != "hello" || segs[0].Kind != FontKindBody {
 		t.Errorf("expected single body segment 'hello', got %v", segs)
 	}
@@ -95,7 +95,7 @@ func TestSegmentText_WithSymbolsFont(t *testing.T) {
 	sym := notoSansSymbols2Regular
 
 	// "Status: ⚠ OK" — body font has "Status: ", symbols has "⚠", body has " OK"
-	segs := SegmentText(body, sym, "Status: ⚠ OK")
+	segs := SegmentText(body, sym, nil, "Status: ⚠ OK")
 	if len(segs) < 2 {
 		t.Fatalf("expected multiple segments, got %d: %v", len(segs), segs)
 	}
@@ -119,7 +119,7 @@ func TestSegmentText_WithSymbolsFont(t *testing.T) {
 
 func TestSegmentText_FallbackSubstitution(t *testing.T) {
 	// With no fonts, emoji should get text-substituted as body segments.
-	segs := SegmentText(nil, nil, "✅ Yes")
+	segs := SegmentText(nil, nil, nil, "✅ Yes")
 	if len(segs) != 1 {
 		t.Fatalf("expected 1 segment (all body fallback), got %d: %v", len(segs), segs)
 	}
@@ -137,5 +137,77 @@ func TestIsASCII(t *testing.T) {
 	}
 	if isASCII("✅") {
 		t.Error("expected '✅' to not be ASCII")
+	}
+}
+
+func TestSubstituteUnsupportedGlyphs_WithEmojiFont(t *testing.T) {
+	// With all three fonts, emoji glyphs the emoji font supports should be kept.
+	bodyFont := notoSansRegular
+	symFont := notoSansSymbols2Regular
+	emojiFont := notoEmojiRegular
+
+	// ✅ (U+2705) is not in body or symbols but IS in Noto Emoji.
+	got := SubstituteUnsupportedGlyphs(bodyFont, symFont, emojiFont, "✅ Done")
+	if got != "✅ Done" {
+		t.Errorf("check mark should be kept when emoji font supports it: got %q", got)
+	}
+
+	// ❌ (U+274C) is not in body or symbols but IS in Noto Emoji.
+	got = SubstituteUnsupportedGlyphs(bodyFont, symFont, emojiFont, "❌ Failed")
+	if got != "❌ Failed" {
+		t.Errorf("cross mark should be kept when emoji font supports it: got %q", got)
+	}
+
+	// • (bullet) is in body font; should still be kept.
+	got = SubstituteUnsupportedGlyphs(bodyFont, symFont, emojiFont, "• item")
+	if got != "• item" {
+		t.Errorf("bullet should not be substituted: got %q", got)
+	}
+}
+
+func TestSegmentText_WithEmojiFont(t *testing.T) {
+	body := notoSansRegular
+	sym := notoSansSymbols2Regular
+	emoji := notoEmojiRegular
+
+	// "Done ✅" — body has "Done ", emoji has "✅"
+	segs := SegmentText(body, sym, emoji, "Done ✅")
+	if len(segs) < 2 {
+		t.Fatalf("expected multiple segments, got %d: %v", len(segs), segs)
+	}
+
+	// Should have at least one emoji segment.
+	foundEmoji := false
+	for _, s := range segs {
+		if s.Kind == FontKindEmoji {
+			foundEmoji = true
+		}
+	}
+	if !foundEmoji {
+		t.Errorf("expected at least one emoji segment for ✅, got %v", segs)
+	}
+}
+
+func TestSegmentText_ThreeTierCascade(t *testing.T) {
+	body := notoSansRegular
+	sym := notoSansSymbols2Regular
+	emoji := notoEmojiRegular
+
+	// "Hello ★ ✅" — body has "Hello ", symbols has "★", body has " ", emoji has "✅"
+	segs := SegmentText(body, sym, emoji, "Hello ★ ✅")
+
+	// Verify we get body, symbols, and emoji segments.
+	kinds := map[FontKind]bool{}
+	for _, s := range segs {
+		kinds[s.Kind] = true
+	}
+	if !kinds[FontKindBody] {
+		t.Error("expected body segments")
+	}
+	if !kinds[FontKindSymbols] {
+		t.Error("expected symbols segments")
+	}
+	if !kinds[FontKindEmoji] {
+		t.Error("expected emoji segments")
 	}
 }

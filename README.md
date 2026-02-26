@@ -15,6 +15,7 @@ Convert Markdown documents to clean, professional PDFs — with syntax-highlight
 - **Orphan protection** — headings never appear stranded at the bottom of a page
 - **Noto Sans font** — embedded for full UTF-8 support (override with `--font`)
 - **Symbol font fallback** — embedded Noto Sans Symbols 2 renders glyphs the body font lacks (override with `--symbols-font`)
+- **Emoji font fallback** — embedded Noto Emoji renders pictographic symbols the body and symbols fonts lack (override with `--emoji-font`)
 - **Single static binary** — no runtime dependencies (except `mmdc` for Mermaid)
 
 ## Installation
@@ -58,6 +59,9 @@ markdown2pdf --font /path/to/MyFont.zip document.md
 
 # Use a custom symbols fallback font
 markdown2pdf --symbols-font /path/to/Symbols.tar.gz document.md
+
+# Use a custom emoji fallback font
+markdown2pdf --emoji-font /path/to/Emoji.tar.gz document.md
 ```
 
 
@@ -67,7 +71,11 @@ markdown2pdf --symbols-font /path/to/Symbols.tar.gz document.md
 
 **Symbols fallback**: [Noto Sans Symbols 2](https://fonts.google.com/noto/specimen/Noto+Sans+Symbols+2) is embedded as the default fallback. When the body font lacks a glyph, the symbols font is tried automatically. Override with `--symbols-font`.
 
-**Text substitution**: Glyphs that neither font supports (e.g. color emoji like 🚀) are replaced with ASCII equivalents (e.g. `[>]`).
+**Emoji fallback**: [Noto Emoji](https://fonts.google.com/noto/specimen/Noto+Emoji) is embedded as the third-tier fallback. When both the body and symbols fonts lack a glyph, the emoji font is tried. Override with `--emoji-font`.
+
+**Text substitution**: Glyphs that no embedded font supports (e.g. SMP emoji like 🚀) are replaced with ASCII equivalents (e.g. `[>]`).
+
+The full cascade: **body font → symbols font → emoji font → text substitution**.
 
 ## Diagram support
 

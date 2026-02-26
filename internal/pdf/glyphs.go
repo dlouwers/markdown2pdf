@@ -13,6 +13,8 @@ const (
 	FontKindBody FontKind = iota
 	// FontKindSymbols means the segment should be rendered with the symbols fallback font.
 	FontKindSymbols
+	// FontKindEmoji means the segment should be rendered with the emoji fallback font.
+	FontKindEmoji
 )
 
 // TextSegment is a contiguous run of text that should be rendered with a
@@ -77,7 +79,7 @@ var emojiSubstitutions = map[rune]string{
 // font, and falls back to text substitution if neither font has the glyph.
 //
 // Adjacent runes using the same font are coalesced into a single segment.
-func SegmentText(bodyFont, symbolsFont []byte, text string) []TextSegment {
+func SegmentText(bodyFont, symbolsFont, emojiFont []byte, text string) []TextSegment {
 	// Fast path: pure ASCII is always body font.
 	if isASCII(text) {
 		return []TextSegment{{Text: text, Kind: FontKindBody}}
@@ -85,7 +87,7 @@ func SegmentText(bodyFont, symbolsFont []byte, text string) []TextSegment {
 
 	hasBody := len(bodyFont) > 0
 	hasSymbols := len(symbolsFont) > 0
-
+	hasEmoji := len(emojiFont) > 0
 	var segments []TextSegment
 	var buf strings.Builder
 	currentKind := FontKindBody
@@ -128,6 +130,16 @@ func SegmentText(bodyFont, symbolsFont []byte, text string) []TextSegment {
 			continue
 		}
 
+		emojiSupports := hasEmoji && FontSupportsGlyph(emojiFont, r)
+		if emojiSupports {
+			if currentKind != FontKindEmoji {
+				flush(FontKindEmoji)
+			}
+			buf.WriteRune(r)
+			i += size
+			continue
+		}
+
 		// Neither font supports the rune. Use text substitution if available,
 		// otherwise pass through as body font (will render as .notdef).
 		sub, hasSub := emojiSubstitutions[r]
@@ -158,7 +170,7 @@ func SegmentText(bodyFont, symbolsFont []byte, text string) []TextSegment {
 // Runes renderable by the symbols font are kept as-is (they will be rendered
 // via font fallback). This function is used for text measurement where we
 // need a flat string rather than segmented output.
-func SubstituteUnsupportedGlyphs(bodyFont, symbolsFont []byte, text string) string {
+func SubstituteUnsupportedGlyphs(bodyFont, symbolsFont, emojiFont []byte, text string) string {
 	// Fast path: if text is pure ASCII, nothing to substitute.
 	if isASCII(text) {
 		return text
@@ -166,6 +178,7 @@ func SubstituteUnsupportedGlyphs(bodyFont, symbolsFont []byte, text string) stri
 
 	hasBody := len(bodyFont) > 0
 	hasSymbols := len(symbolsFont) > 0
+	hasEmoji := len(emojiFont) > 0
 	var b strings.Builder
 	b.Grow(len(text))
 
@@ -179,7 +192,7 @@ func SubstituteUnsupportedGlyphs(bodyFont, symbolsFont []byte, text string) stri
 		}
 
 		// Keep if body font or symbols font supports it.
-		if (hasBody && FontSupportsGlyph(bodyFont, r)) || (hasSymbols && FontSupportsGlyph(symbolsFont, r)) {
+		if (hasBody && FontSupportsGlyph(bodyFont, r)) || (hasSymbols && FontSupportsGlyph(symbolsFont, r)) || (hasEmoji && FontSupportsGlyph(emojiFont, r)) {
 			b.WriteRune(r)
 			i += size
 			continue

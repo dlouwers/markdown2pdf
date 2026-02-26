@@ -11,8 +11,9 @@ import (
 type DocumentOption func(*documentConfig)
 
 type documentConfig struct {
-	customFontArchive   string
+	customFontArchive    string
 	customSymbolsArchive string
+	customEmojiArchive   string
 }
 
 // WithCustomFont returns an option that loads fonts from a zip or tar.gz
@@ -31,12 +32,21 @@ func WithCustomSymbolsFont(archivePath string) DocumentOption {
 	}
 }
 
+// WithCustomEmojiFont returns an option that loads an emoji fallback font
+// from a zip or tar.gz archive instead of the default embedded Noto Emoji.
+func WithCustomEmojiFont(archivePath string) DocumentOption {
+	return func(c *documentConfig) {
+		c.customEmojiArchive = archivePath
+	}
+}
+
 type Document struct {
 	pdf              *fpdf.Fpdf
 	footerCalls      int
 	baseDir          string
 	bodyFontBytes    []byte // regular body font TTF bytes for glyph detection
 	symbolsFontBytes []byte // symbols fallback font TTF bytes for glyph detection
+	emojiFontBytes   []byte // emoji fallback font TTF bytes for glyph detection
 }
 
 func NewDocument(opts ...DocumentOption) (*Document, error) {
@@ -70,6 +80,17 @@ func NewDocument(opts ...DocumentOption) (*Document, error) {
 		doc.symbolsFontBytes = symBytes
 	} else {
 		doc.symbolsFontBytes = RegisterSymbolsFont(pdfDoc)
+	}
+
+	// Register emoji fallback font.
+	if cfg.customEmojiArchive != "" {
+		emojiBytes, err := LoadCustomEmojiFont(pdfDoc, cfg.customEmojiArchive)
+		if err != nil {
+			return nil, fmt.Errorf("load custom emoji font: %w", err)
+		}
+		doc.emojiFontBytes = emojiBytes
+	} else {
+		doc.emojiFontBytes = RegisterEmojiFont(pdfDoc)
 	}
 
 	pdfDoc.SetMargins(PageMargin, PageMargin, PageMargin)
@@ -120,4 +141,10 @@ func (d *Document) BodyFontBytes() []byte {
 // used for glyph detection when the body font lacks a glyph.
 func (d *Document) SymbolsFontBytes() []byte {
 	return d.symbolsFontBytes
+}
+
+// EmojiFontBytes returns the raw TTF bytes of the emoji fallback font,
+// used for glyph detection when neither the body nor symbols font has a glyph.
+func (d *Document) EmojiFontBytes() []byte {
+	return d.emojiFontBytes
 }

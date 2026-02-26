@@ -88,7 +88,7 @@ func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
 
 	// Pre-calculate heading text height for orphan protection.
 	state.fpdf.SetFont(pdf.FontBody, "B", size)
-	text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), collectInlineText(heading, source))
+	text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(heading, source))
 	left, _, right, _ := state.fpdf.GetMargins()
 	pageW, _ := state.fpdf.GetPageSize()
 	textWidth := pageW - left - right
@@ -290,12 +290,14 @@ func writeText(state *renderState, text string) {
 	if text == "" {
 		return
 	}
-	segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), text)
+	segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), text)
 	for _, seg := range segments {
-		if seg.Kind == pdf.FontKindSymbols {
-			// Temporarily switch to symbols font, preserving style.
+		switch seg.Kind {
+		case pdf.FontKindSymbols:
 			writeSymbolsSegment(state, seg.Text)
-		} else {
+		case pdf.FontKindEmoji:
+			writeEmojiSegment(state, seg.Text)
+		default:
 			applyFont(state)
 			if state.style.linkDest != "" {
 				state.fpdf.WriteLinkString(pdf.LineHeight, seg.Text, state.style.linkDest)
@@ -322,6 +324,30 @@ func writeSymbolsSegment(state *renderState, text string) {
 		state.fpdf.SetTextColor(pdf.ColorLink.R, pdf.ColorLink.G, pdf.ColorLink.B)
 	}
 	state.fpdf.SetFont(pdf.FontSymbols, style, size)
+	if state.style.linkDest != "" {
+		state.fpdf.WriteLinkString(pdf.LineHeight, text, state.style.linkDest)
+	} else {
+		state.fpdf.Write(pdf.LineHeight, text)
+	}
+	applyFont(state) // restore body font
+}
+
+// writeEmojiSegment renders text using the emoji fallback font, preserving
+// the current bold/italic style indicators.
+func writeEmojiSegment(state *renderState, text string) {
+	style := ""
+	if state.style.bold {
+		style += "B"
+	}
+	if state.style.italic {
+		style += "I"
+	}
+	size := pdf.FontSizeBody
+	if state.style.linkDest != "" {
+		style += "U"
+		state.fpdf.SetTextColor(pdf.ColorLink.R, pdf.ColorLink.G, pdf.ColorLink.B)
+	}
+	state.fpdf.SetFont(pdf.FontEmoji, style, size)
 	if state.style.linkDest != "" {
 		state.fpdf.WriteLinkString(pdf.LineHeight, text, state.style.linkDest)
 	} else {

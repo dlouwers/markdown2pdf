@@ -28,11 +28,12 @@ func run(args []string) int {
 	fs := flag.NewFlagSet("markdown2pdf", flag.ContinueOnError)
 
 	var (
-		output         string
-		showVersion    bool
-		toc            bool
-		fontPath       string
+		output          string
+		showVersion     bool
+		toc             bool
+		fontPath        string
 		symbolsFontPath string
+		emojiFontPath   string
 	)
 
 	fs.StringVar(&output, "o", "", "output PDF file path (default: input with .pdf extension)")
@@ -40,6 +41,7 @@ func run(args []string) int {
 	fs.BoolVar(&toc, "toc", false, "generate a table of contents")
 	fs.StringVar(&fontPath, "font", "", "path to a .zip or .tar.gz archive containing TTF font files")
 	fs.StringVar(&symbolsFontPath, "symbols-font", "", "path to a .zip or .tar.gz archive containing a TTF symbols fallback font")
+	fs.StringVar(&emojiFontPath, "emoji-font", "", "path to a .zip or .tar.gz archive containing a TTF emoji fallback font")
 
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -97,6 +99,9 @@ func run(args []string) int {
 	}
 	if symbolsFontPath != "" {
 		opts = append(opts, pdf.WithCustomSymbolsFont(symbolsFontPath))
+	}
+	if emojiFontPath != "" {
+		opts = append(opts, pdf.WithCustomEmojiFont(emojiFontPath))
 	}
 	doc, err := pdf.NewDocument(opts...)
 	if err != nil {

@@ -37,6 +37,9 @@ var notoSansMonoBold []byte
 //go:embed fonts/NotoSansSymbols2-Regular.ttf
 var notoSansSymbols2Regular []byte
 
+//go:embed fonts/NotoEmoji-Regular.ttf
+var notoEmojiRegular []byte
+
 // RegisterFonts registers the embedded Noto Sans font families with the PDF
 // document. After registration, FontBody and FontCode constants can be used
 // with SetFont as usual. It returns the regular body font bytes for glyph
@@ -62,6 +65,55 @@ func RegisterSymbolsFont(pdf *fpdf.Fpdf) []byte {
 	pdf.AddUTF8FontFromBytes(FontSymbols, "I", notoSansSymbols2Regular)
 	pdf.AddUTF8FontFromBytes(FontSymbols, "BI", notoSansSymbols2Regular)
 	return notoSansSymbols2Regular
+}
+
+// RegisterEmojiFont registers the embedded Noto Emoji font as the third-tier
+// fallback font family for rendering emoji glyphs that neither the body nor
+// symbols font supports. It returns the emoji font bytes for glyph detection.
+func RegisterEmojiFont(pdf *fpdf.Fpdf) []byte {
+	pdf.AddUTF8FontFromBytes(FontEmoji, "", notoEmojiRegular)
+	pdf.AddUTF8FontFromBytes(FontEmoji, "B", notoEmojiRegular)
+	pdf.AddUTF8FontFromBytes(FontEmoji, "I", notoEmojiRegular)
+	pdf.AddUTF8FontFromBytes(FontEmoji, "BI", notoEmojiRegular)
+	return notoEmojiRegular
+}
+
+// LoadCustomEmojiFont reads a zip or tar.gz archive and registers the first
+// TTF found as the emoji fallback font family. Returns the font bytes.
+func LoadCustomEmojiFont(pdf *fpdf.Fpdf, archivePath string) ([]byte, error) {
+	data, err := os.ReadFile(archivePath)
+	if err != nil {
+		return nil, fmt.Errorf("read emoji font archive: %w", err)
+	}
+
+	var fonts map[string][]byte
+	lower := strings.ToLower(archivePath)
+	switch {
+	case strings.HasSuffix(lower, ".zip"):
+		fonts, err = extractTTFFromZip(data)
+	case strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz"):
+		fonts, err = extractTTFFromTarGz(data)
+	default:
+		return nil, fmt.Errorf("unsupported archive format: %s (expected .zip or .tar.gz)", archivePath)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("extract emoji fonts: %w", err)
+	}
+	if len(fonts) == 0 {
+		return nil, fmt.Errorf("no .ttf files found in %s", archivePath)
+	}
+
+	// Use the first TTF found — emoji fonts typically have one weight.
+	var fontBytes []byte
+	for _, b := range fonts {
+		fontBytes = b
+		break
+	}
+	pdf.AddUTF8FontFromBytes(FontEmoji, "", fontBytes)
+	pdf.AddUTF8FontFromBytes(FontEmoji, "B", fontBytes)
+	pdf.AddUTF8FontFromBytes(FontEmoji, "I", fontBytes)
+	pdf.AddUTF8FontFromBytes(FontEmoji, "BI", fontBytes)
+	return fontBytes, nil
 }
 
 // LoadCustomSymbolsFont reads a zip or tar.gz archive and registers the first
