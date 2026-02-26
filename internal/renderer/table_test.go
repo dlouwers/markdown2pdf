@@ -1,10 +1,14 @@
 package renderer
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/dlouwers/markdown2pdf/internal/parser"
+	"github.com/dlouwers/markdown2pdf/internal/pdf"
 )
 
 func TestSimpleTableRenders(t *testing.T) {
@@ -40,5 +44,32 @@ func TestTableFromFixture(t *testing.T) {
 	data := renderPDF(t, source, false)
 	if len(data) < 100 {
 		t.Fatalf("PDF output seems too small")
+	}
+}
+
+func TestTablePageBreakReRendersHeader(t *testing.T) {
+	// Build a table large enough to span two pages.
+	var sb strings.Builder
+	sb.WriteString("| Name | Value |\n|------|-------|\n")
+	for i := range 80 {
+		fmt.Fprintf(&sb, "| Row %d | Val %d |\n", i, i)
+	}
+
+	source := []byte(sb.String())
+	node, _ := parser.Parse(source)
+	doc := pdf.NewDocument()
+	r := New()
+	if err := r.Render(doc, node, source); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	if doc.PDF().PageNo() < 2 {
+		t.Fatal("expected table to span multiple pages")
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "table-pagebreak.pdf")
+	if err := doc.Save(path); err != nil {
+		t.Fatalf("save: %v", err)
 	}
 }

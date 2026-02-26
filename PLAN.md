@@ -1,7 +1,7 @@
 # markdown2pdf — Implementation Plan
 
 > Referenced from [AGENTS.md](./AGENTS.md) stage 1.
-Status: **Phase 5 complete. Phase 6 next.**
+Status: **All phases complete. Ready for v0.0.1 release.**
 
 ---
 
@@ -165,22 +165,22 @@ markdown2pdf/
 - [x] Embedded SVG support (rasterize via oksvg → PNG → embed)
 - [x] Image scaling to fit page width with aspect ratio preserved
 - [x] Base64-encoded data URI images
-### Phase 6: Diagrams
-- [ ] D2 code block detection (` ```d2 `)
-- [ ] D2 → PNG rendering via native Go library
-- [ ] Mermaid code block detection (` ```mermaid `)
-- [ ] Mermaid → PNG rendering via `mmdc` CLI
-- [ ] Diagram light-theme styling (white background, dark lines — good for PDF)
-- [ ] Diagram scaling to fit page width
-- [ ] Graceful fallback when mmdc is unavailable
-
-### Phase 7: Polish & Release
-- [ ] Page breaks — avoid orphaned headings, split long tables
-- [ ] Table of contents generation (optional flag)
-- [ ] GoReleaser configuration
-- [ ] Release workflow (tag → build → publish binaries)
-- [ ] README with usage examples
-- [ ] Integration tests with golden PDF comparison
+### Phase 6: Diagrams ✅
+- [x] D2 code block detection (` ```d2 `)
+- [x] D2 → PNG rendering via native Go library + chromedp SVG rasterization
+- [x] Mermaid code block detection (` ```mermaid `)
+- [x] Mermaid → PNG rendering via `mmdc` CLI
+- [x] Diagram light-theme styling (white background, dark lines — good for PDF)
+- [x] Diagram scaling to fit page width with LaTeX-inspired shrink-to-fit placement
+- [x] Graceful fallback when mmdc is unavailable
+- [x] Cross-platform browser detection (Brave/Chrome/Chromium/Edge) for chromedp
+### Phase 7: Polish & Release ✅
+- [x] Page breaks — avoid orphaned headings, split long tables
+- [x] Table of contents generation (optional `--toc` flag)
+- [x] GoReleaser configuration
+- [x] Release workflow (tag → build → publish binaries)
+- [x] README with usage examples
+- [x] Integration tests (E2E smoke tests exercising all features)
 
 ---
 

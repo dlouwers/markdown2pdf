@@ -30,10 +30,12 @@ func run(args []string) int {
 	var (
 		output      string
 		showVersion bool
+		toc         bool
 	)
 
 	fs.StringVar(&output, "o", "", "output PDF file path (default: input with .pdf extension)")
 	fs.BoolVar(&showVersion, "version", false, "print version information and exit")
+	fs.BoolVar(&toc, "toc", false, "generate a table of contents")
 
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -90,6 +92,7 @@ func run(args []string) int {
 
 	// Render AST to PDF.
 	r := renderer.New()
+	r.TOC = toc
 	if err := r.Render(doc, node, src); err != nil {
 		fmt.Fprintf(os.Stderr, "error: rendering PDF: %v\n", err)
 		return 1

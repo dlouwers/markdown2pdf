@@ -11,10 +11,12 @@ import (
 )
 
 type renderState struct {
-	doc   *pdf.Document
-	fpdf  *fpdf.Fpdf
-	style textStyle
-	stack []textStyle
+	doc        *pdf.Document
+	fpdf       *fpdf.Fpdf
+	style      textStyle
+	stack      []textStyle
+	tocLinks   []int // link IDs for TOC; consumed in heading order
+	tocLinkIdx int   // next index into tocLinks
 }
 
 type textStyle struct {
@@ -79,8 +81,30 @@ func renderNode(state *renderState, node ast.Node, source []byte) error {
 }
 
 func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
-	state.fpdf.Ln(2)
+	// Orphan protection: ensure heading + at least one body line fit on the
+	// current page. A heading stranded at the bottom looks bad.
 	size := headingFontSize(heading.Level)
+	headingHeight := 2 + (pdf.LineHeight + 1) + 2 // Ln(2) + MultiCell line + Ln(2)
+	bodyLine := pdf.LineHeight                     // at least one line of following content
+	needed := headingHeight + bodyLine
+
+	_, topMargin, _, bottomMargin := state.fpdf.GetMargins()
+	_, pageH := state.fpdf.GetPageSize()
+	maxPageH := pageH - topMargin - bottomMargin
+	remaining := pageH - bottomMargin - state.fpdf.GetY()
+
+	// Only break if we're not already near the top and there isn't enough room.
+	if needed > remaining && remaining < maxPageH-1 {
+		state.fpdf.AddPage()
+	}
+
+	// Set TOC link destination at the heading position.
+	if state.tocLinkIdx < len(state.tocLinks) {
+		state.fpdf.SetLink(state.tocLinks[state.tocLinkIdx], state.fpdf.GetY(), -1)
+		state.tocLinkIdx++
+	}
+
+	state.fpdf.Ln(2)
 	state.fpdf.SetFont(pdf.FontBody, "B", size)
 	text := collectInlineText(heading, source)
 	state.fpdf.MultiCell(0, pdf.LineHeight+1, text, "", "", false)

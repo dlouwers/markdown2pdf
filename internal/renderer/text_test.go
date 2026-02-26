@@ -226,3 +226,26 @@ func TestHeadingFontSizeValues(t *testing.T) {
 		}
 	}
 }
+
+func TestHeadingOrphanProtection(t *testing.T) {
+	// Fill a page until near the bottom, then render a heading.
+	// Orphan protection should push it to the next page.
+	source := []byte("# Heading")
+	node, _ := parser.Parse(source)
+	doc := pdf.NewDocument()
+
+	// Move Y position close to the bottom margin so only ~10mm remain.
+	_, pageH := doc.PDF().GetPageSize()
+	nearBottom := pageH - pdf.PageMargin - 10
+	doc.PDF().SetY(nearBottom)
+
+	r := New()
+	if err := r.Render(doc, node, source); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	// The heading should have triggered a page break.
+	if doc.PDF().PageNo() < 2 {
+		t.Fatal("expected heading to trigger page break near bottom of page")
+	}
+}

@@ -39,15 +39,34 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 	rowHeight := pdf.LineHeight + 2*pdf.TableCellPadding
 	alignments := table.Alignments
 
-	if header, ok := table.FirstChild().(*extast.TableHeader); ok {
+	// Extract header node for potential re-rendering on page breaks.
+	var header *extast.TableHeader
+	if h, ok := table.FirstChild().(*extast.TableHeader); ok {
+		header = h
 		renderTableHeader(state, header, source, columnWidths, alignments, rowHeight)
 	}
+
+	_, pageH := state.fpdf.GetPageSize()
+	_, _, _, bottomMargin := state.fpdf.GetMargins()
 
 	for row := table.FirstChild(); row != nil; row = row.NextSibling() {
 		bodyRow, ok := row.(*extast.TableRow)
 		if !ok {
 			continue
 		}
+
+		// Check if the row fits on the current page; if not, break and
+		// re-render the header row on the new page for readability.
+		remaining := pageH - bottomMargin - state.fpdf.GetY()
+		if rowHeight > remaining {
+			state.fpdf.AddPage()
+			state.fpdf.SetLineWidth(pdf.TableBorderWidth)
+			state.fpdf.SetDrawColor(pdf.ColorTableBorder.R, pdf.ColorTableBorder.G, pdf.ColorTableBorder.B)
+			if header != nil {
+				renderTableHeader(state, header, source, columnWidths, alignments, rowHeight)
+			}
+		}
+
 		renderTableRow(state, bodyRow, source, columnWidths, alignments, rowHeight, false)
 	}
 
