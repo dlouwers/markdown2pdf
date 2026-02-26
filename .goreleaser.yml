@@ -46,3 +46,17 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^ci:"
+
+brews:
+  - name: markdown2pdf
+    repository:
+      owner: dlouwers
+      name: homebrew-markdown2pdf
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: "https://github.com/dlouwers/markdown2pdf"
+    description: "Convert Markdown with code blocks, diagrams, and images to PDF"
+    license: "MIT"
+    install: |
+      bin.install "markdown2pdf"
+    test: |
+      system "#{bin}/markdown2pdf", "--version"
