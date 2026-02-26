@@ -5,7 +5,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,6 +41,12 @@ func initBrowser() (context.Context, error) {
 			chromedp.Flag("disable-software-rasterizer", true),
 			chromedp.Flag("headless", true),
 		)
+
+		// Use a user-specified or auto-detected Chromium-based browser if
+		// chromedp's built-in search (Chrome/Chromium only) would miss it.
+		if p := findBrowser(); p != "" {
+			opts = append(opts, chromedp.ExecPath(p))
+		}
 
 		allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
 		ctx, cancel := chromedp.NewContext(allocCtx)
@@ -196,4 +205,72 @@ func ensureSVGDimensions(svg string) string {
 	attrs := fmt.Sprintf(` width="%.0f" height="%.0f"`, vbW, vbH)
 	newTag := `<svg` + attrs + firstTag[4:] // Insert after "<svg"
 	return strings.Replace(svg, firstTag, newTag, 1)
+}
+
+// findBrowser returns the path to a Chromium-based browser, checking:
+//  1. CHROME_PATH environment variable (explicit user override)
+//  2. Well-known locations for Brave, Chrome, Chromium, and Edge
+//
+// Returns "" if nothing is found, letting chromedp fall back to its own search.
+func findBrowser() string {
+	if p := os.Getenv("CHROME_PATH"); p != "" {
+		if _, err := exec.LookPath(p); err == nil {
+			return p
+		}
+		// Might be an absolute path that LookPath can't find but exists.
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+
+	for _, p := range browserPaths() {
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return ""
+}
+
+// browserPaths returns platform-specific paths to Chromium-based browsers,
+// ordered by preference: Brave, Chrome, Chromium, Edge.
+func browserPaths() []string {
+	switch runtime.GOOS {
+	case "darwin":
+		return []string{
+			"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+			"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+			"/Applications/Chromium.app/Contents/MacOS/Chromium",
+			"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+		}
+	case "windows":
+		userProfile := os.Getenv("USERPROFILE")
+		localAppData := os.Getenv("LOCALAPPDATA")
+		if localAppData == "" {
+			localAppData = userProfile + `\AppData\Local`
+		}
+		return []string{
+			localAppData + `\BraveSoftware\Brave-Browser\Application\brave.exe`,
+			`C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe`,
+			`C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe`,
+			localAppData + `\Google\Chrome\Application\chrome.exe`,
+			`C:\Program Files\Google\Chrome\Application\chrome.exe`,
+			`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+			localAppData + `\Chromium\Application\chrome.exe`,
+			`C:\Program Files\Microsoft\Edge\Application\msedge.exe`,
+			`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
+		}
+	default: // Linux, FreeBSD, etc.
+		return []string{
+			"/usr/bin/brave-browser",
+			"/usr/bin/brave",
+			"/snap/bin/brave",
+			"/usr/bin/google-chrome",
+			"/usr/bin/google-chrome-stable",
+			"/usr/bin/chromium",
+			"/usr/bin/chromium-browser",
+			"/snap/bin/chromium",
+			"/usr/bin/microsoft-edge",
+			"/usr/bin/microsoft-edge-stable",
+		}
+	}
 }

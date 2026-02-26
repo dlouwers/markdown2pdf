@@ -16,8 +16,11 @@ This is to be an application that converts markdown with codeblocks to good look
 - assures that the generated diagrams fit well within the pdf document
 
 # Working Directory
+
+**At the start of every session**, read this file to determine the project root. The default workspace provided by the environment is often wrong.
+
 Project root: `/Users/dirk/Documents/projects/markdown2pdf`
-All shell commands must use this as the working directory.
+All shell commands must use this as the working directory (pass `workdir` to the Bash tool or use `docker exec -w`).
 
 # Go Version
 This project uses **Go 1.25**. The devcontainer image is `mcr.microsoft.com/devcontainers/go:1.25` and `GOTOOLCHAIN=auto` is set so toolchain downloads happen automatically. Do not upgrade to a newer Go version without explicit approval.
