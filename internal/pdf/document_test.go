@@ -8,7 +8,10 @@ import (
 )
 
 func TestNewDocumentCreatesPDF(t *testing.T) {
-	doc := NewDocument()
+	doc, err := NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	if doc == nil {
 		t.Fatal("expected document")
 	}
@@ -20,7 +23,10 @@ func TestNewDocumentCreatesPDF(t *testing.T) {
 func TestSaveWritesPDFHeader(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "out.pdf")
-	doc := NewDocument()
+	doc, err := NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	if err := doc.Save(path); err != nil {
 		t.Fatalf("save: %v", err)
 	}
@@ -35,7 +41,10 @@ func TestSaveWritesPDFHeader(t *testing.T) {
 }
 
 func TestFooterPageNumbers(t *testing.T) {
-	doc := NewDocument()
+	doc, err := NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	pdf := doc.PDF()
 	pdf.AddPage()
 	pdf.AddPage()

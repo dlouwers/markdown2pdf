@@ -7,16 +7,49 @@ import (
 	"github.com/go-pdf/fpdf"
 )
 
-type Document struct {
-	pdf         *fpdf.Fpdf
-	footerCalls int
-	baseDir     string
+// DocumentOption configures Document creation.
+type DocumentOption func(*documentConfig)
+
+type documentConfig struct {
+	customFontArchive string
 }
 
-func NewDocument() *Document {
+// WithCustomFont returns an option that loads fonts from a zip or tar.gz
+// archive instead of the default embedded Noto Sans.
+func WithCustomFont(archivePath string) DocumentOption {
+	return func(c *documentConfig) {
+		c.customFontArchive = archivePath
+	}
+}
+
+type Document struct {
+	pdf           *fpdf.Fpdf
+	footerCalls   int
+	baseDir       string
+	bodyFontBytes []byte // regular body font TTF bytes for glyph detection
+}
+
+func NewDocument(opts ...DocumentOption) (*Document, error) {
+	cfg := &documentConfig{}
+	for _, o := range opts {
+		o(cfg)
+	}
+
 	pdfDoc := fpdf.New("P", "mm", "A4", "")
 	doc := &Document{pdf: pdfDoc}
-	RegisterFonts(pdfDoc)
+
+	if cfg.customFontArchive != "" {
+		bodyBytes, err := LoadCustomFonts(pdfDoc, cfg.customFontArchive)
+		if err != nil {
+			return nil, fmt.Errorf("load custom fonts: %w", err)
+		}
+		doc.bodyFontBytes = bodyBytes
+		// Still register the mono font for code blocks.
+		pdfDoc.AddUTF8FontFromBytes(FontCode, "", notoSansMonoRegular)
+		pdfDoc.AddUTF8FontFromBytes(FontCode, "B", notoSansMonoBold)
+	} else {
+		doc.bodyFontBytes = RegisterFonts(pdfDoc)
+	}
 
 	pdfDoc.SetMargins(PageMargin, PageMargin, PageMargin)
 	pdfDoc.SetAutoPageBreak(true, PageMargin)
@@ -33,7 +66,7 @@ func NewDocument() *Document {
 	})
 	pdfDoc.AddPage()
 
-	return doc
+	return doc, nil
 }
 
 func (d *Document) Save(path string) error {
@@ -54,4 +87,10 @@ func (d *Document) BaseDir() string {
 
 func (d *Document) SetBaseDir(dir string) {
 	d.baseDir = dir
+}
+
+// BodyFontBytes returns the raw TTF bytes of the regular body font,
+// used for glyph detection (e.g. checking if bullet characters exist).
+func (d *Document) BodyFontBytes() []byte {
+	return d.bodyFontBytes
 }

@@ -11,7 +11,10 @@ import (
 func TestTOCGeneratesLinks(t *testing.T) {
 	source := []byte("# Title\n\nIntro.\n\n## Section\n\nBody.\n\n### Sub\n\nDetails.")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	r.TOC = true
 	if err := r.Render(doc, node, source); err != nil {
@@ -33,7 +36,10 @@ func TestTOCGeneratesLinks(t *testing.T) {
 func TestTOCSkippedWhenDisabled(t *testing.T) {
 	source := []byte("# Title\n\nBody text.")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	r.TOC = false
 	if err := r.Render(doc, node, source); err != nil {
@@ -49,7 +55,10 @@ func TestTOCSkippedWhenDisabled(t *testing.T) {
 func TestTOCEmptyDocument(t *testing.T) {
 	source := []byte("No headings here, just a paragraph.")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	r.TOC = true
 	if err := r.Render(doc, node, source); err != nil {

@@ -15,7 +15,10 @@ func renderPDF(t *testing.T, source []byte, disableCompression bool) []byte {
 	t.Helper()
 
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	if disableCompression {
 		doc.PDF().SetCompression(false)
 	}

@@ -185,7 +185,10 @@ func TestRenderMissingImage(t *testing.T) {
 	// Placeholder should include "file not found" text.
 	// UTF-8 fonts use CID encoding; verify placeholder rendered by checking PDF size
 	// is substantially larger than a blank page (placeholder adds drawing ops).
-	blankDoc := pdf.NewDocument()
+	blankDoc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	var blankBuf bytes.Buffer
 	if err := blankDoc.PDF().Output(&blankBuf); err != nil {
 		t.Fatalf("blank output: %v", err)
@@ -222,7 +225,10 @@ func TestRenderImageWithBaseDir(t *testing.T) {
 
 	source := []byte("![relative](relative.png)\n")
 	node, src := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	doc.SetBaseDir(dir)
 
 	r := New()
@@ -276,7 +282,10 @@ func TestImagesFromFixture(t *testing.T) {
 	}
 
 	node, src := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	doc.SetBaseDir(testdataDir)
 
 	r := New()

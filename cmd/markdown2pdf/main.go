@@ -31,11 +31,13 @@ func run(args []string) int {
 		output      string
 		showVersion bool
 		toc         bool
+		fontPath    string
 	)
 
 	fs.StringVar(&output, "o", "", "output PDF file path (default: input with .pdf extension)")
 	fs.BoolVar(&showVersion, "version", false, "print version information and exit")
 	fs.BoolVar(&toc, "toc", false, "generate a table of contents")
+	fs.StringVar(&fontPath, "font", "", "path to a .zip or .tar.gz archive containing TTF font files")
 
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -87,7 +89,15 @@ func run(args []string) int {
 	node, src := parser.Parse(source)
 
 	// Create PDF document.
-	doc := pdf.NewDocument()
+	var opts []pdf.DocumentOption
+	if fontPath != "" {
+		opts = append(opts, pdf.WithCustomFont(fontPath))
+	}
+	doc, err := pdf.NewDocument(opts...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: creating document: %v\n", err)
+		return 1
+	}
 	doc.SetBaseDir(filepath.Dir(input))
 
 	// Render AST to PDF.

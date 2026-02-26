@@ -16,7 +16,10 @@ import (
 func TestHeadingFontSize(t *testing.T) {
 	source := []byte("# Title")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	doc.PDF().SetCompression(false)
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
@@ -40,7 +43,10 @@ func TestHeadingFontSize(t *testing.T) {
 func TestParagraphTextAppearsInPDF(t *testing.T) {
 	source := []byte("Paragraph with **bold** and *italic* text.")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	doc.PDF().SetCompression(false)
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
@@ -61,7 +67,10 @@ func TestParagraphTextAppearsInPDF(t *testing.T) {
 func TestBoldItalicStyles(t *testing.T) {
 	source := []byte("**bold** *italic*")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
 		t.Fatalf("render: %v", err)
@@ -92,7 +101,10 @@ func TestBoldItalicStyles(t *testing.T) {
 func TestBlockquoteRenders(t *testing.T) {
 	source := []byte("> This is a blockquote.\n> With multiple lines.")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
 		t.Fatalf("render: %v", err)
@@ -108,7 +120,10 @@ func TestBlockquoteRenders(t *testing.T) {
 func TestThematicBreakRenders(t *testing.T) {
 	source := []byte("Text above\n\n---\n\nText below")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
 		t.Fatalf("render: %v", err)
@@ -124,7 +139,10 @@ func TestThematicBreakRenders(t *testing.T) {
 func TestAllHeadingLevels(t *testing.T) {
 	source := []byte("# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
 		t.Fatalf("render: %v", err)
@@ -140,7 +158,10 @@ func TestAllHeadingLevels(t *testing.T) {
 func TestInlineCodeRenders(t *testing.T) {
 	source := []byte("Use `fmt.Println` for output.")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
 		t.Fatalf("render: %v", err)
@@ -156,7 +177,10 @@ func TestInlineCodeRenders(t *testing.T) {
 func TestLinkRenders(t *testing.T) {
 	source := []byte("Visit [example](https://example.com) for details.")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
 		t.Fatalf("render: %v", err)
@@ -185,7 +209,10 @@ This is a paragraph with **bold**, *italic*, and ` + "`code`" + `.
 Visit [example](https://example.com).
 `)
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 	r := New()
 	if err := r.Render(doc, node, source); err != nil {
 		t.Fatalf("render: %v", err)
@@ -232,7 +259,10 @@ func TestHeadingOrphanProtection(t *testing.T) {
 	// Orphan protection should push it to the next page.
 	source := []byte("# Heading")
 	node, _ := parser.Parse(source)
-	doc := pdf.NewDocument()
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
 
 	// Move Y position close to the bottom margin so only ~10mm remain.
 	_, pageH := doc.PDF().GetPageSize()

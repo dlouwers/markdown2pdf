@@ -13,7 +13,7 @@ Convert Markdown documents to clean, professional PDFs — with syntax-highlight
 - **D2 diagrams** — rendered natively via the D2 Go library
 - **Table of contents** — optional `--toc` flag with clickable links
 - **Orphan protection** — headings never appear stranded at the bottom of a page
-- **Noto Sans font** — embedded for full UTF-8 support
+- **Noto Sans font** — embedded for full UTF-8 support (override with `--font`)
 - **Single static binary** — no runtime dependencies (except `mmdc` for Mermaid)
 
 ## Installation
@@ -51,6 +51,9 @@ markdown2pdf --toc document.md
 
 # Print version
 markdown2pdf --version
+
+# Use a custom font (zip or tar.gz with TTF files)
+markdown2pdf --font /path/to/MyFont.zip document.md
 ```
 
 ## Diagram support

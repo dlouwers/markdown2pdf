@@ -25,7 +25,9 @@ const (
 	CodeBlockPadding = 6.0
 	CodeBlockMarginV = 4.0
 
-	ListIndent      = 10.0
+	ListIndent      = 7.0  // left margin increase per nesting level (LaTeX ~2.5em)
+	ListLabelWidth  = 5.0  // width of the label box (right-aligned labels)
+	ListLabelSep    = 2.0  // gap between label box and text (LaTeX \labelsep ≈ 5pt)
 	ListBulletSize  = 2.0
 	ListItemSpacing = 2.0
 
@@ -38,6 +40,9 @@ const (
 )
 
 var (
+	// ListBulletChars are the UTF-8 bullet characters by nesting depth.
+	ListBulletChars = []rune{'•', '‣', '⁃'}
+
 	ColorText            = fpdf.RGBType{R: 20, G: 20, B: 20}
 	ColorLink            = fpdf.RGBType{R: 20, G: 90, B: 200}
 	ColorBlockquote      = fpdf.RGBType{R: 230, G: 230, B: 230}
