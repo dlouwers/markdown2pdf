@@ -1,0 +1,21 @@
+{
+  "name": "markdown2pdf",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/guiyomh/features/golangci-lint:0": {}
+  },
+  "postCreateCommand": "npm install -g @mermaid-js/mermaid-cli && go mod download",
+  "remoteEnv": {
+    "GOTOOLCHAIN": "auto"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "bierner.markdown-mermaid",
+        "github.vscode-github-actions"
+      ]
+    }
+  }
+}
