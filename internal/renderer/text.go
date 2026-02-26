@@ -114,7 +114,7 @@ func renderBlockquote(state *renderState, blockquote *ast.Blockquote, source []b
 	barX := left
 	barY := startY
 
-	ast.Walk(blockquote, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(blockquote, func(n ast.Node, entering bool) (ast.WalkStatus, error) { //nolint:errcheck // callback never returns error
 		if !entering {
 			return ast.WalkContinue, nil
 		}
