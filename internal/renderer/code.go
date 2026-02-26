@@ -9,11 +9,74 @@ import (
 	"github.com/go-pdf/fpdf"
 	"github.com/yuin/goldmark/ast"
 
+	"github.com/dlouwers/markdown2pdf/internal/diagram"
 	"github.com/dlouwers/markdown2pdf/internal/pdf"
 )
 
 func renderCodeBlock(state *renderState, node ast.Node, source []byte) {
 	codeText := collectCodeText(node, source)
+	if codeText == "" {
+		return
+	}
+
+	// Check for diagram languages before rendering as a code block.
+	if fenced, ok := node.(*ast.FencedCodeBlock); ok {
+		lang := strings.TrimSpace(string(fenced.Language(source)))
+		if renderDiagram(state, codeText, lang) {
+			return
+		}
+	}
+
+	renderStyledCodeBlock(state, node, codeText, source)
+}
+
+// renderDiagram attempts to render a diagram for the given language.
+// Returns true if the language was a diagram language and rendering was handled.
+func renderDiagram(state *renderState, codeText, lang string) bool {
+	switch strings.ToLower(lang) {
+	case "d2":
+		renderD2Diagram(state, codeText)
+		return true
+	case "mermaid":
+		renderMermaidDiagram(state, codeText)
+		return true
+	default:
+		return false
+	}
+}
+
+func renderD2Diagram(state *renderState, source string) {
+	pngData, err := diagram.RenderD2(source)
+	if err != nil {
+		renderDiagramPlaceholder(state, "D2", err)
+		return
+	}
+
+	state.fpdf.Ln(pdf.ImageMarginV)
+	embedPNGBytes(state, pngData, "d2-diagram")
+	state.fpdf.Ln(pdf.ImageMarginV)
+}
+
+func renderMermaidDiagram(state *renderState, source string) {
+	pngData, err := diagram.RenderMermaid(source)
+	if err != nil {
+		renderDiagramPlaceholder(state, "Mermaid", err)
+		return
+	}
+
+	state.fpdf.Ln(pdf.ImageMarginV)
+	embedPNGBytes(state, pngData, "mermaid-diagram")
+	state.fpdf.Ln(pdf.ImageMarginV)
+}
+
+// renderDiagramPlaceholder renders an error placeholder when a diagram fails to render.
+func renderDiagramPlaceholder(state *renderState, diagramType string, err error) {
+	state.fpdf.Ln(pdf.ImageMarginV)
+	renderImagePlaceholder(state, diagramType+" diagram", err.Error())
+	state.fpdf.Ln(pdf.ImageMarginV)
+}
+
+func renderStyledCodeBlock(state *renderState, node ast.Node, codeText string, source []byte) {
 	lineCount := countCodeLines(codeText)
 	if lineCount == 0 {
 		return

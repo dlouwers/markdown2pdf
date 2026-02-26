@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dlouwers/markdown2pdf/internal/diagram"
 	"github.com/dlouwers/markdown2pdf/internal/parser"
 	"github.com/dlouwers/markdown2pdf/internal/pdf"
 )
@@ -95,5 +96,49 @@ func TestCodeBlocksFromFixture(t *testing.T) {
 	data := renderPDF(t, source, false)
 	if len(data) < 100 {
 		t.Fatalf("PDF output seems too small")
+	}
+}
+
+func TestD2DiagramRenders(t *testing.T) {
+	if !diagram.ChromiumAvailable() {
+		t.Skip("headless Chromium not available")
+	}
+
+	source := []byte("```d2\nx -> y\n```")
+	data := renderPDF(t, source, false)
+	if len(data) < 100 {
+		t.Fatalf("PDF output seems too small")
+	}
+}
+
+func TestD2DiagramWithInvalidSource(t *testing.T) {
+	// Invalid D2 source should render a placeholder, not crash.
+	source := []byte("```d2\n{{{{invalid}}}}\n```")
+	data := renderPDF(t, source, false)
+	if len(data) < 100 {
+		t.Fatalf("PDF output seems too small")
+	}
+}
+
+func TestMermaidDiagramRendersOrPlaceholder(t *testing.T) {
+	// If mmdc is available, renders diagram; otherwise renders placeholder.
+	// Either way, it should produce valid PDF output.
+	source := []byte("```mermaid\ngraph TD\n    A --> B\n```")
+	data := renderPDF(t, source, false)
+	if len(data) < 100 {
+		t.Fatalf("PDF output seems too small")
+	}
+}
+
+func TestRegularCodeBlockStillWorks(t *testing.T) {
+	if !diagram.ChromiumAvailable() {
+		t.Skip("headless Chromium not available")
+	}
+
+	// Ensure that non-diagram fenced code blocks still render normally.
+	source := []byte("```go\npackage main\n```\n\n```d2\na -> b\n```")
+	data := renderPDF(t, source, true)
+	if !strings.Contains(string(data), "utf8notosansmono") {
+		t.Fatalf("expected NotoSansMono font for Go code block")
 	}
 }

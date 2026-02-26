@@ -141,17 +141,74 @@ func rasterizeSVG(svgData []byte, scale float64) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// embedImage places a registered image at the current position, scaled to fit page width.
+// Image placement constants inspired by LaTeX float placement defaults.
+// LaTeX uses \textfraction=0.2 (min 20% text per page) and \topfraction=0.7
+// (max 70% for floats). We use a shrink-to-fit threshold: if remaining space
+// is >= this fraction of a full page, shrink the image to fit rather than
+// wasting space with a page break. Below this threshold, a page break
+// produces a better-looking result.
+const (
+	// minShrinkThreshold is the minimum remaining page fraction (of full content
+	// height) at which we shrink an image to fit rather than breaking to a new
+	// page. At 0.4 (40%), an image is shrunk to at most 60% of its natural size
+	// before we prefer a page break. This balances space usage against diagram
+	// readability.
+	minShrinkThreshold = 0.4
+)
+
+// embedImage places a registered image at the current position, scaled to fit
+// available space using LaTeX-inspired placement heuristics:
+//
+//  1. Scale to fit page width (preserving aspect ratio).
+//  2. If the image fits the remaining space, place it as-is.
+//  3. If it doesn't fit but remaining space >= 40% of a full page,
+//     shrink it to fill the remaining space (avoids large whitespace gaps).
+//  4. If remaining space < 40%, add a page break and place at natural size.
+//  5. If the image is taller than a full page, scale to fit one page.
+//
+// We use flow=false because we handle page breaks manually to avoid
+// double-break conflicts with fpdf's built-in auto-pagination.
 func embedImage(state *renderState, name string, info *fpdf.ImageInfoType) {
 	imgW, imgH := info.Extent()
 	if imgW <= 0 || imgH <= 0 {
 		return
 	}
 
-	maxWidth := contentWidth(state)
-	w, h := scaleToFit(imgW, imgH, maxWidth)
+	maxW := contentWidth(state)
+	w, h := scaleToFit(imgW, imgH, maxW)
 
-	state.fpdf.Image(name, state.fpdf.GetX(), state.fpdf.GetY(), w, h, true, "", 0, "")
+	// Compute page geometry.
+	_, topMargin, _, bottomMargin := state.fpdf.GetMargins()
+	_, pageH := state.fpdf.GetPageSize()
+	maxPageH := pageH - topMargin - bottomMargin
+	remaining := pageH - bottomMargin - state.fpdf.GetY()
+
+	switch {
+	case h <= remaining:
+		// Fits on current page — place as-is.
+
+	case remaining >= minShrinkThreshold*maxPageH:
+		// Doesn't fit, but enough space to shrink into without looking bad.
+		scale := remaining / h
+		w *= scale
+		h = remaining
+
+	default:
+		// Not enough room — start a fresh page.
+		state.fpdf.AddPage()
+
+	}
+
+	// If image is still taller than a full page (very large diagram), scale to fit.
+	if h > maxPageH {
+		scale := maxPageH / h
+		w *= scale
+		h *= scale
+	}
+
+	state.fpdf.Image(name, state.fpdf.GetX(), state.fpdf.GetY(), w, h, false, "", 0, "")
+	// Advance Y position manually since flow=false.
+	state.fpdf.SetY(state.fpdf.GetY() + h)
 }
 
 // embedPNGBytes registers PNG bytes and embeds the image.
