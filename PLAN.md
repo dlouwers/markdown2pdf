@@ -1,7 +1,7 @@
 # markdown2pdf — Implementation Plan
 
 > Referenced from [AGENTS.md](./AGENTS.md) stage 1.
-Status: **Phase 3 complete. Phase 4 next.**
+Status: **Phase 4 complete. Phase 5 next.**
 
 ---
 
@@ -154,11 +154,11 @@ markdown2pdf/
 - [x] Render tokens with colored monospace text in PDF
 - [x] Code block background shading
 - [ ] Line numbers (optional, off by default)
-### Phase 4: Lists & Tables
-- [ ] Unordered lists (nested, with bullet styles)
-- [ ] Ordered lists (nested, with numbering)
-- [ ] Task lists (checkbox rendering)
-- [ ] GFM tables with borders, header styling, column alignment
+### Phase 4: Lists & Tables ✅
+- [x] Unordered lists (nested, with bullet styles)
+- [x] Ordered lists (nested, with numbering)
+- [x] Task lists (checkbox rendering)
+- [x] GFM tables with borders, header styling, column alignment
 
 ### Phase 5: Images
 - [ ] Embedded PNG support (inline `![alt](path)`)

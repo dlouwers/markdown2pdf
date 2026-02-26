@@ -24,13 +24,23 @@ const (
 	FontSizeCode     = 9.0
 	CodeBlockPadding = 6.0
 	CodeBlockMarginV = 4.0
+
+	ListIndent      = 10.0
+	ListBulletSize  = 2.0
+	ListItemSpacing = 2.0
+
+	TableCellPadding = 3.0
+	TableBorderWidth = 0.3
+	FontSizeTable    = 10.0
 )
 
 var (
-	ColorText       = fpdf.RGBType{R: 20, G: 20, B: 20}
-	ColorLink       = fpdf.RGBType{R: 20, G: 90, B: 200}
-	ColorBlockquote = fpdf.RGBType{R: 230, G: 230, B: 230}
-	ColorCodeFill   = fpdf.RGBType{R: 240, G: 240, B: 240}
+	ColorText            = fpdf.RGBType{R: 20, G: 20, B: 20}
+	ColorLink            = fpdf.RGBType{R: 20, G: 90, B: 200}
+	ColorBlockquote      = fpdf.RGBType{R: 230, G: 230, B: 230}
+	ColorCodeFill        = fpdf.RGBType{R: 240, G: 240, B: 240}
 	ColorCodeBlockBG     = fpdf.RGBType{R: 245, G: 245, B: 245}
 	ColorCodeBlockBorder = fpdf.RGBType{R: 220, G: 220, B: 220}
+	ColorTableHeader     = fpdf.RGBType{R: 240, G: 240, B: 240}
+	ColorTableBorder     = fpdf.RGBType{R: 180, G: 180, B: 180}
 )

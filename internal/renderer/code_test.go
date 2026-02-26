@@ -38,62 +38,62 @@ func renderPDF(t *testing.T, source []byte, disableCompression bool) []byte {
 	return data
 }
 
-	func TestFencedCodeBlockRenders(t *testing.T) {
-		source := []byte("```go\npackage main\n\nfunc main() {}\n```")
-		data := renderPDF(t, source, true)
-		if len(data) < 100 {
-			t.Fatalf("PDF output seems too small")
-		}
+func TestFencedCodeBlockRenders(t *testing.T) {
+	source := []byte("```go\npackage main\n\nfunc main() {}\n```")
+	data := renderPDF(t, source, true)
+	if len(data) < 100 {
+		t.Fatalf("PDF output seems too small")
 	}
+}
 
-	func TestFencedCodeBlockWithLanguage(t *testing.T) {
-		source := []byte("```go\npackage main\n\nfunc main() {}\n```")
-		data := renderPDF(t, source, true)
-		if !strings.Contains(string(data), "Courier") {
-			t.Fatalf("expected Courier font in PDF output")
-		}
+func TestFencedCodeBlockWithLanguage(t *testing.T) {
+	source := []byte("```go\npackage main\n\nfunc main() {}\n```")
+	data := renderPDF(t, source, true)
+	if !strings.Contains(string(data), "Courier") {
+		t.Fatalf("expected Courier font in PDF output")
 	}
+}
 
-	func TestFencedCodeBlockNoLanguage(t *testing.T) {
-		source := []byte("```\nno language here\n```")
-		data := renderPDF(t, source, false)
-		if len(data) == 0 {
-			t.Fatalf("expected PDF output")
-		}
+func TestFencedCodeBlockNoLanguage(t *testing.T) {
+	source := []byte("```\nno language here\n```")
+	data := renderPDF(t, source, false)
+	if len(data) == 0 {
+		t.Fatalf("expected PDF output")
 	}
+}
 
-	func TestIndentedCodeBlockRenders(t *testing.T) {
-		source := []byte("    indented code\n    more code")
-		data := renderPDF(t, source, false)
-		if len(data) == 0 {
-			t.Fatalf("expected PDF output")
-		}
+func TestIndentedCodeBlockRenders(t *testing.T) {
+	source := []byte("    indented code\n    more code")
+	data := renderPDF(t, source, false)
+	if len(data) == 0 {
+		t.Fatalf("expected PDF output")
 	}
+}
 
-	func TestCodeBlockHasBackground(t *testing.T) {
-		source := []byte("```go\npackage main\n```")
-		data := renderPDF(t, source, true)
-		if !strings.Contains(string(data), " re ") {
-			t.Fatalf("expected rectangle operation in PDF output")
-		}
+func TestCodeBlockHasBackground(t *testing.T) {
+	source := []byte("```go\npackage main\n```")
+	data := renderPDF(t, source, true)
+	if !strings.Contains(string(data), " re ") {
+		t.Fatalf("expected rectangle operation in PDF output")
 	}
+}
 
-	func TestMultipleCodeBlocks(t *testing.T) {
-		source := []byte("```go\npackage main\n```\n\n```python\nprint('hi')\n```")
-		data := renderPDF(t, source, false)
-		if len(data) == 0 {
-			t.Fatalf("expected PDF output")
-		}
+func TestMultipleCodeBlocks(t *testing.T) {
+	source := []byte("```go\npackage main\n```\n\n```python\nprint('hi')\n```")
+	data := renderPDF(t, source, false)
+	if len(data) == 0 {
+		t.Fatalf("expected PDF output")
 	}
+}
 
-	func TestCodeBlocksFromFixture(t *testing.T) {
-		path := filepath.Join("..", "..", "testdata", "code_blocks.md")
-		source, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("read: %v", err)
-		}
-		data := renderPDF(t, source, false)
-		if len(data) < 100 {
-			t.Fatalf("PDF output seems too small")
-		}
+func TestCodeBlocksFromFixture(t *testing.T) {
+	path := filepath.Join("..", "..", "testdata", "code_blocks.md")
+	source, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read: %v", err)
 	}
+	data := renderPDF(t, source, false)
+	if len(data) < 100 {
+		t.Fatalf("PDF output seems too small")
+	}
+}

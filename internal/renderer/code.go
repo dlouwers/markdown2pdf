@@ -139,5 +139,5 @@ func writeCodeText(state *renderState, text string) {
 }
 
 func fpdfColor(color chroma.Colour) fpdf.RGBType {
-	return fpdf.RGBType{R: color.Red(), G: color.Green(), B: color.Blue()}
+	return fpdf.RGBType{R: int(color.Red()), G: int(color.Green()), B: int(color.Blue())}
 }

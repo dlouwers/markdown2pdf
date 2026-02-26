@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-pdf/fpdf"
 	"github.com/yuin/goldmark/ast"
+	extast "github.com/yuin/goldmark/extension/ast"
 
 	"github.com/dlouwers/markdown2pdf/internal/pdf"
 )
@@ -55,6 +56,16 @@ func renderNode(state *renderState, node ast.Node, source []byte) error {
 		case *ast.CodeBlock:
 			if entering {
 				renderCodeBlock(state, n, source)
+			}
+			return ast.WalkSkipChildren, nil
+		case *ast.List:
+			if entering {
+				renderList(state, n, source, 0)
+			}
+			return ast.WalkSkipChildren, nil
+		case *extast.Table:
+			if entering {
+				renderTable(state, n, source)
 			}
 			return ast.WalkSkipChildren, nil
 		case *ast.Blockquote:
