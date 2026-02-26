@@ -92,7 +92,7 @@ func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
 	left, _, right, _ := state.fpdf.GetMargins()
 	pageW, _ := state.fpdf.GetPageSize()
 	textWidth := pageW - left - right
-	lines := state.fpdf.SplitLines([]byte(text), textWidth)
+	lines := splitTextLines(state.fpdf, text, textWidth)
 	headingHeight := spaceBefore + float64(len(lines))*lineH + spaceAfter
 
 	// Orphan protection: ensure heading + at least one body line fit on the

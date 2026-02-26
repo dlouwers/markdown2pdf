@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"math"
+	"strings"
 
 	"github.com/yuin/goldmark/ast"
 	extast "github.com/yuin/goldmark/extension/ast"
@@ -9,11 +10,11 @@ import (
 	"github.com/dlouwers/markdown2pdf/internal/pdf"
 )
 
-const minTableColumnWidth = 20.0
+const minTableColumnWidth = 15.0
 
 func renderTable(state *renderState, table *extast.Table, source []byte) {
-	columnWidths := measureTableColumns(state, table, source)
-	if len(columnWidths) == 0 {
+	metrics := measureTableMetrics(state, table, source)
+	if len(metrics) == 0 {
 		return
 	}
 
@@ -21,16 +22,9 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 	pageWidth, _ := state.fpdf.GetPageSize()
 	contentWidth := pageWidth - left - right
 
-	totalWidth := 0.0
-	for _, width := range columnWidths {
-		totalWidth += width
-	}
-	if totalWidth > contentWidth {
-		scale := contentWidth / totalWidth
-		for i, width := range columnWidths {
-			columnWidths[i] = width * scale
-		}
-	}
+	// CSS 2.1-style auto table layout: distribute available width using
+	// min-content (longest word) and max-content (no-wrap) widths.
+	columnWidths := distributeColumnWidths(metrics, contentWidth)
 
 	state.fpdf.Ln(2)
 	state.fpdf.SetLineWidth(pdf.TableBorderWidth)
@@ -135,7 +129,7 @@ func calcRowHeight(state *renderState, row ast.Node, source []byte, widths []flo
 		if innerW < 1 {
 			innerW = 1
 		}
-		lines := state.fpdf.SplitLines([]byte(text), innerW)
+		lines := splitTextLines(state.fpdf, text, innerW)
 		if len(lines) > maxLines {
 			maxLines = len(lines)
 		}
@@ -172,34 +166,146 @@ func renderRowCells(state *renderState, row ast.Node, source []byte, widths []fl
 	state.fpdf.Ln(rowHeight)
 }
 
-func measureTableColumns(state *renderState, table *extast.Table, source []byte) []float64 {
+// columnMetrics holds min-content and max-content widths for a column.
+type columnMetrics struct {
+	minW float64 // longest unbreakable word + padding
+	maxW float64 // widest cell without any wrapping + padding
+}
+
+// measureTableMetrics computes per-column min-content (longest word) and
+// max-content (no-wrap) widths for CSS 2.1-style auto table layout.
+func measureTableMetrics(state *renderState, table *extast.Table, source []byte) []columnMetrics {
 	columnCount := tableColumnCount(table)
 	if columnCount == 0 {
 		return nil
 	}
 
-	widths := make([]float64, columnCount)
-	for i := range widths {
-		widths[i] = minTableColumnWidth
+	metrics := make([]columnMetrics, columnCount)
+	for i := range metrics {
+		metrics[i].minW = minTableColumnWidth
+		metrics[i].maxW = minTableColumnWidth
 	}
 
 	state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeTable)
 	for row := table.FirstChild(); row != nil; row = row.NextSibling() {
-		cells := row.FirstChild()
-		column := 0
-		for cell := cells; cell != nil && column < columnCount; cell = cell.NextSibling() {
+		col := 0
+		for cell := row.FirstChild(); cell != nil && col < columnCount; cell = cell.NextSibling() {
 			cellNode, ok := cell.(*extast.TableCell)
 			if !ok {
 				continue
 			}
 			text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(cellNode, source))
-			width := state.fpdf.GetStringWidth(text) + 2*pdf.TableCellPadding
-			widths[column] = math.Max(widths[column], width)
-			column++
+			padding := 2 * pdf.TableCellPadding
+
+			// Max-content: full text width without wrapping.
+			maxW := state.fpdf.GetStringWidth(text) + padding
+			metrics[col].maxW = math.Max(metrics[col].maxW, maxW)
+
+			// Min-content: longest single word (break at spaces and hyphens).
+			for _, word := range splitWords(text) {
+				wW := state.fpdf.GetStringWidth(word) + padding
+				metrics[col].minW = math.Max(metrics[col].minW, wW)
+			}
+			col++
+		}
+	}
+
+	// Ensure minW never exceeds maxW.
+	for i := range metrics {
+		if metrics[i].minW > metrics[i].maxW {
+			metrics[i].minW = metrics[i].maxW
+		}
+	}
+
+	return metrics
+}
+
+// distributeColumnWidths implements CSS 2.1 auto table layout.
+// 1. If total max-content fits, use max-content widths (no wrapping needed).
+// 2. If total min-content exceeds table width, use proportional min widths.
+// 3. Otherwise, give each column its min-content width, then distribute the
+//    remaining space proportionally to each column's flex (max - min).
+//    This ensures narrow columns keep their natural width while wider
+//    columns absorb compression, preventing mid-word breaks.
+func distributeColumnWidths(metrics []columnMetrics, tableWidth float64) []float64 {
+	n := len(metrics)
+	widths := make([]float64, n)
+
+	totalMin := 0.0
+	totalMax := 0.0
+	for _, m := range metrics {
+		totalMin += m.minW
+		totalMax += m.maxW
+	}
+
+	// Case 1: everything fits without wrapping.
+	if totalMax <= tableWidth {
+		// Distribute extra space proportionally to max-content.
+		for i, m := range metrics {
+			widths[i] = m.maxW
+		}
+		extra := tableWidth - totalMax
+		if extra > 0 && totalMax > 0 {
+			for i, m := range metrics {
+				widths[i] += extra * (m.maxW / totalMax)
+			}
+		}
+		return widths
+	}
+
+	// Case 2: even minimum widths don't fit — scale proportionally.
+	if totalMin >= tableWidth {
+		scale := tableWidth / totalMin
+		for i, m := range metrics {
+			widths[i] = m.minW * scale
+		}
+		return widths
+	}
+
+	// Case 3: table needs wrapping. Give every column its min-content,
+	// then distribute remaining space proportionally to flex (max - min).
+	// Narrow columns that need less space get proportionally more of their
+	// preferred width, while wide columns absorb the compression.
+	totalFlex := 0.0
+	for i, m := range metrics {
+		widths[i] = m.minW
+		totalFlex += m.maxW - m.minW
+	}
+	remaining := tableWidth - totalMin
+	if totalFlex > 0 && remaining > 0 {
+		for i, m := range metrics {
+			flex := m.maxW - m.minW
+			widths[i] += remaining * (flex / totalFlex)
 		}
 	}
 
 	return widths
+}
+
+// splitWords breaks text at spaces and hyphens (with the hyphen kept at the
+// end of the preceding segment), matching fpdf.SplitLines break behavior.
+func splitWords(text string) []string {
+	var words []string
+	var current strings.Builder
+	for _, r := range text {
+		switch r {
+		case ' ':
+			if current.Len() > 0 {
+				words = append(words, current.String())
+				current.Reset()
+			}
+		case '-':
+			current.WriteRune(r)
+			words = append(words, current.String())
+			current.Reset()
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if current.Len() > 0 {
+		words = append(words, current.String())
+	}
+	return words
 }
 
 func tableColumnCount(table *extast.Table) int {
@@ -241,10 +347,9 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 	}
 
 	// Split text into wrapped lines and render each with font-segment awareness.
-	lines := state.fpdf.SplitLines([]byte(text), innerWidth)
+	lines := splitTextLines(state.fpdf, text, innerWidth)
 	textY := y + pdf.TableCellPadding
-	for _, line := range lines {
-		lineStr := string(line)
+	for _, lineStr := range lines {
 		segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), lineStr)
 
 		// Calculate total rendered width for alignment.
