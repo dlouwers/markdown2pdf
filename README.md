@@ -18,6 +18,7 @@ Convert Markdown documents to clean, professional PDFs — with syntax-highlight
 - **D2 diagrams** — rendered natively via the D2 Go library
 - **Table of contents** — optional `--toc` flag with clickable links
 - **Cover pages** — optional `--cover-page` flag generates a professional cover page from YAML frontmatter
+- **Smart inline code wrapping** — long code spans break at safe points (spaces, underscores, dots, slashes) with continuation indicators
 
 - **Orphan protection** — headings never appear stranded at the bottom of a page
 - **Noto Sans font** — embedded for full UTF-8 support (override with `--font`)
