@@ -7,8 +7,6 @@
 
 Convert Markdown documents to clean, professional PDFs — with syntax-highlighted code blocks, tables, images, and Mermaid/D2 diagrams.
 
-Convert Markdown documents to clean, professional PDFs — with syntax-highlighted code blocks, tables, images, and Mermaid/D2 diagrams.
-
 ## Features
 
 - **Headings, paragraphs, inline styles** (bold, italic, code, links)
