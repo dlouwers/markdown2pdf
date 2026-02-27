@@ -44,8 +44,17 @@ func renderCoverPage(state *renderState, metadata *parser.Metadata) {
 		}
 	}
 
-	// Move to middle section for metadata
-	y = pageHeight / 2
+	// Position metadata below title/subtitle block with minimum spacing
+	// Use dynamic positioning to prevent overlap when title/subtitle wrap to many lines
+	titleBottom := y
+	minSpacing := pdf.FontSizeCoverSubtitle * 0.353 * 1.5 // 1.5em spacing (LaTeX standard)
+	metadataY := titleBottom + minSpacing
+
+	// Use the larger of: calculated position or traditional center position
+	y = metadataY
+	if pageHeight/2 > metadataY {
+		y = pageHeight / 2
+	}
 
 	// Author
 	if metadata.Author != "" {
