@@ -7,6 +7,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	extast "github.com/yuin/goldmark/extension/ast"
 
+	"github.com/dlouwers/markdown2pdf/internal/emoji"
 	"github.com/dlouwers/markdown2pdf/internal/pdf"
 )
 
@@ -393,8 +394,8 @@ func writeSymbolsSegment(state *renderState, text string) {
 	applyFont(state) // restore body font
 }
 
-// writeEmojiSegment renders text using the emoji fallback font, preserving
-// the current bold/italic style indicators.
+// writeEmojiSegment renders text using emoji PNGs for common emoji (when available),
+// falling back to the emoji font or text substitution for others.
 func writeEmojiSegment(state *renderState, text string) {
 	style := ""
 	if state.style.bold {
@@ -408,12 +409,43 @@ func writeEmojiSegment(state *renderState, text string) {
 		style += "U"
 		state.fpdf.SetTextColor(pdf.ColorLink.R, pdf.ColorLink.G, pdf.ColorLink.B)
 	}
-	state.fpdf.SetFont(pdf.FontEmoji, style, size)
-	if state.style.linkDest != "" {
-		state.fpdf.WriteLinkString(pdf.LineHeight, text, state.style.linkDest)
-	} else {
-		state.fpdf.Write(pdf.LineHeight, text)
+
+	// Process each rune individually
+	for _, r := range text {
+		// Try PNG rendering for common emoji first
+		if emoji.IsCommonEmoji(r) {
+			codepoint := emoji.ToTwemojiCodepoint(r)
+			if pngData, err := emoji.GetPNG(codepoint); err == nil {
+				if embedEmojiInline(state, pngData, r) {
+					continue // Success - skip to next rune
+				}
+			}
+		}
+
+		// PNG failed or not a common emoji - use font/substitution
+		// Substitute SMP characters (>U+FFFF) to prevent fpdf panic
+		var fallbackText string
+		if r > 0xFFFF {
+			// Use text substitution for SMP characters
+			fallbackText = pdf.SubstituteUnsupportedGlyphs(
+				state.doc.BodyFontBytes(),
+				state.doc.SymbolsFontBytes(),
+				state.doc.EmojiFontBytes(),
+				string(r),
+			)
+		} else {
+			// BMP character - safe to render with font
+			fallbackText = string(r)
+		}
+
+		state.fpdf.SetFont(pdf.FontEmoji, style, size)
+		if state.style.linkDest != "" {
+			state.fpdf.WriteLinkString(pdf.LineHeight, fallbackText, state.style.linkDest)
+		} else {
+			state.fpdf.Write(pdf.LineHeight, fallbackText)
+		}
 	}
+
 	applyFont(state) // restore body font
 }
 
@@ -421,6 +453,8 @@ func writeCode(state *renderState, text string) {
 	if text == "" {
 		return
 	}
+	// Substitute unsupported glyphs (including SMP emoji) to prevent fpdf panics
+	text = pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), text)
 	state.fpdf.SetFillColor(pdf.ColorCodeFill.R, pdf.ColorCodeFill.G, pdf.ColorCodeFill.B)
 	width := state.fpdf.GetStringWidth(text) + 2
 	state.fpdf.CellFormat(width, pdf.LineHeight, text, "", 0, "", true, 0, "")
