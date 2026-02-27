@@ -158,6 +158,11 @@ func LoadCustomSymbolsFont(pdf *fpdf.Fpdf, archivePath string) ([]byte, error) {
 // for the specified rune. It uses golang.org/x/image/font/sfnt to parse the
 // font's cmap table. A GlyphIndex of 0 means the .notdef (missing) glyph.
 func FontSupportsGlyph(fontData []byte, r rune) bool {
+	// fpdf's internal character width table is limited to 65536 entries (uint16 index).
+	// Reject runes outside the Basic Multilingual Plane to avoid index out of range panics.
+	if r > 0xFFFF {
+		return false
+	}
 	f, err := sfnt.Parse(fontData)
 	if err != nil {
 		return false

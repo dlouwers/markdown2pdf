@@ -153,19 +153,22 @@ func SegmentText(bodyFont, symbolsFont, emojiFont []byte, text string) []TextSeg
 		}
 
 		// Neither font supports the rune. Use text substitution if available,
-		// otherwise pass through as body font (will render as .notdef).
+		// otherwise skip it (fpdf cannot render codepoints > 0xFFFF).
 		sub, hasSub := emojiSubstitutions[r]
 		if hasSub {
 			if currentKind != FontKindBody {
 				flush(FontKindBody)
 			}
 			buf.WriteString(sub)
-		} else {
+		} else if r <= 0xFFFF {
+			// Only pass through BMP characters to avoid fpdf panic.
+			// Characters > 0xFFFF will be silently dropped.
 			if currentKind != FontKindBody {
 				flush(FontKindBody)
 			}
 			buf.WriteRune(r)
 		}
+		// else: skip SMP character entirely
 		i += size
 	}
 
