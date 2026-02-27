@@ -231,6 +231,38 @@ func embedImageBytes(state *renderState, data []byte, imgType, label string) {
 	embedImage(state, name, info)
 }
 
+// embedEmojiInline embeds a Twemoji PNG inline at the current cursor position.
+// Unlike embedImage (block-level), this advances X not Y.
+// Returns true on success, false if embedding failed (caller should fallback to font).
+func embedEmojiInline(state *renderState, pngData []byte, r rune) bool {
+	imageCounter++
+	name := fmt.Sprintf("emoji_%x_%d", r, imageCounter)
+
+	opt := fpdf.ImageOptions{ImageType: "PNG"}
+	_ = state.fpdf.RegisterImageOptionsReader(name, opt, bytes.NewReader(pngData))
+	if state.fpdf.Err() {
+		return false // Silent fail, caller handles fallback
+	}
+
+	// Size emoji to match line height (slightly smaller for better alignment)
+	size := pdf.LineHeight * 0.9
+
+	// Get current position
+	x, y := state.fpdf.GetX(), state.fpdf.GetY()
+
+	// Calculate baseline offset to align emoji bottom with text baseline
+	// Text sits on baseline; emoji should too
+	yOffset := (pdf.LineHeight - size) / 2
+
+	// Embed image at current position with baseline offset
+	state.fpdf.Image(name, x, y+yOffset, size, size, false, "", 0, "")
+
+	// Advance cursor by image width (not height - this is inline)
+	state.fpdf.SetX(x + size)
+
+	return true
+}
+
 // scaleToFit scales width and height to fit within maxWidth, preserving aspect ratio.
 func scaleToFit(imgW, imgH, maxWidth float64) (float64, float64) {
 	if imgW <= maxWidth {
