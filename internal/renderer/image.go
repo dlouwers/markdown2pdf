@@ -234,6 +234,7 @@ func embedImageBytes(state *renderState, data []byte, imgType, label string) {
 // embedEmojiInline embeds a Twemoji PNG inline at the current cursor position.
 // Unlike embedImage (block-level), this advances X not Y.
 // Adds spacing before/after emoji for better visual separation from surrounding text.
+// Respects right margin and triggers line breaks when necessary.
 // Returns true on success, false if embedding failed (caller should fallback to font).
 func embedEmojiInline(state *renderState, pngData []byte, r rune) bool {
 	imageCounter++
@@ -252,8 +253,26 @@ func embedEmojiInline(state *renderState, pngData []byte, r rune) bool {
 	// This prevents emoji from touching adjacent characters
 	spacing := pdf.FontSizeBody * 0.15
 
-	// Get current position
+	// Get current position and page dimensions
 	x, y := state.fpdf.GetX(), state.fpdf.GetY()
+	pageWidth, _ := state.fpdf.GetPageSize()
+	leftMargin, _, rightMargin, _ := state.fpdf.GetMargins()
+
+	// Total width needed for emoji (including spacing)
+	emojiWidth := spacing + size + spacing
+
+	// Check if emoji would overflow right margin
+	if x+emojiWidth > pageWidth-rightMargin {
+		// Move to next line using fpdf's line break (handles margins properly)
+		state.fpdf.Ln(pdf.LineHeight)
+		// Get new position after line break
+		x, y = state.fpdf.GetX(), state.fpdf.GetY()
+		// If X is 0, we need to apply left margin (fpdf Ln bug workaround)
+		if x == 0 {
+			x = leftMargin
+			state.fpdf.SetX(x)
+		}
+	}
 
 	// Add leading space
 	x += spacing
