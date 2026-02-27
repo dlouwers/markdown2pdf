@@ -14,7 +14,7 @@ import (
 func renderPDF(t *testing.T, source []byte, disableCompression bool) []byte {
 	t.Helper()
 
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)

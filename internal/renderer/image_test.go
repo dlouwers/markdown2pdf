@@ -224,7 +224,7 @@ func TestRenderImageWithBaseDir(t *testing.T) {
 	createTestPNG(t, pngPath, 60, 30)
 
 	source := []byte("![relative](relative.png)\n")
-	node, src := parser.Parse(source)
+	node, src, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -281,7 +281,7 @@ func TestImagesFromFixture(t *testing.T) {
 		t.Fatalf("read: %v", err)
 	}
 
-	node, src := parser.Parse(source)
+	node, src, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)

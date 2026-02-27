@@ -56,7 +56,7 @@ func TestTablePageBreakReRendersHeader(t *testing.T) {
 	}
 
 	source := []byte(sb.String())
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
