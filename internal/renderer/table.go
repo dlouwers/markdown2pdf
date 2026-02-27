@@ -12,6 +12,42 @@ import (
 
 const minTableColumnWidth = 15.0
 
+// tableRenderMetrics holds calculated font size, padding, and line height for a table.
+type tableRenderMetrics struct {
+	fontSize   float64
+	padding    float64
+	lineHeight float64
+}
+
+// calculateTableMetrics returns proportional font size, padding, and line height
+// based on column count. Follows LaTeX and CSS typography best practices:
+//  - 1-6 columns: full size (10pt font, 0.5em padding, 1.3× leading)
+//  - 7-8 columns: 90% reduction (~9pt font)
+//  - 9+ columns: 80% reduction (~8pt font)
+func calculateTableMetrics(columnCount int) tableRenderMetrics {
+	var scaleFactor float64
+	switch {
+	case columnCount >= 9:
+		scaleFactor = 0.8 // 80% for 9+ columns
+	case columnCount >= 7:
+		scaleFactor = 0.9 // 90% for 7-8 columns
+	default:
+		scaleFactor = 1.0 // Full size for 1-6 columns
+	}
+
+	fontSize := pdf.FontSizeTable * scaleFactor
+	// 0.5em horizontal padding (CSS standard for table cells)
+	padding := fontSize * 0.353 * 0.5
+	// 1.3× leading for tables (tighter than body text, standard for tabular data)
+	lineHeight := fontSize * 0.353 * 1.3
+
+	return tableRenderMetrics{
+		fontSize:   fontSize,
+		padding:    padding,
+		lineHeight: lineHeight,
+	}
+}
+
 func renderTable(state *renderState, table *extast.Table, source []byte) {
 	metrics := measureTableMetrics(state, table, source)
 	if len(metrics) == 0 {
@@ -22,6 +58,11 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 	pageWidth, _ := state.fpdf.GetPageSize()
 	contentWidth := pageWidth - left - right
 
+	columnCount := len(metrics)
+	
+	// Calculate proportional font size, padding, and line height based on column count
+	tm := calculateTableMetrics(columnCount)
+	
 	// CSS 2.1-style auto table layout: distribute available width using
 	// min-content (longest word) and max-content (no-wrap) widths.
 	columnWidths := distributeColumnWidths(metrics, contentWidth)
@@ -53,12 +94,12 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 	// Orphan-header prevention: ensure header + at least one data row
 	// fit on the current page before rendering anything.
 	if header != nil {
-		state.fpdf.SetFont(pdf.FontBody, "B", pdf.FontSizeTable)
-		headerH := calcRowHeight(state, header, source, columnWidths)
-		minFirstRow := pdf.LineHeight + 2*pdf.TableCellPadding // fallback
+		state.fpdf.SetFont(pdf.FontBody, "B", tm.fontSize)
+		headerH := calcRowHeight(state, header, source, columnWidths, tm)
+		minFirstRow := tm.lineHeight + 2*tm.padding // fallback
 		if firstDataRow != nil {
-			state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeTable)
-			minFirstRow = calcRowHeight(state, firstDataRow, source, columnWidths)
+			state.fpdf.SetFont(pdf.FontBody, "", tm.fontSize)
+			minFirstRow = calcRowHeight(state, firstDataRow, source, columnWidths, tm)
 		}
 		remaining := pageH - bottomMargin - state.fpdf.GetY()
 		if headerH+minFirstRow > remaining {
@@ -67,7 +108,7 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 			state.fpdf.SetLineWidth(pdf.TableBorderWidth)
 			state.fpdf.SetDrawColor(pdf.ColorTableBorder.R, pdf.ColorTableBorder.G, pdf.ColorTableBorder.B)
 		}
-		renderTableSection(state, header, source, columnWidths, alignments, true)
+		renderTableSection(state, header, source, columnWidths, alignments, true, tm)
 	}
 
 	for row := table.FirstChild(); row != nil; row = row.NextSibling() {
@@ -76,8 +117,8 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 			continue
 		}
 
-		state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeTable)
-		rowH := calcRowHeight(state, bodyRow, source, columnWidths)
+		state.fpdf.SetFont(pdf.FontBody, "", tm.fontSize)
+		rowH := calcRowHeight(state, bodyRow, source, columnWidths, tm)
 
 		// Check if the row fits on the current page; if not, break and
 		// re-render the header row on the new page for readability.
@@ -87,12 +128,12 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 			state.fpdf.SetLineWidth(pdf.TableBorderWidth)
 			state.fpdf.SetDrawColor(pdf.ColorTableBorder.R, pdf.ColorTableBorder.G, pdf.ColorTableBorder.B)
 			if header != nil {
-				renderTableSection(state, header, source, columnWidths, alignments, true)
+			renderTableSection(state, header, source, columnWidths, alignments, true, tm)
 			}
 		}
 
-		state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeTable)
-		renderRowCells(state, bodyRow, source, columnWidths, alignments, rowH, false)
+		state.fpdf.SetFont(pdf.FontBody, "", tm.fontSize)
+		renderRowCells(state, bodyRow, source, columnWidths, alignments, rowH, false, tm)
 	}
 
 	state.fpdf.SetLineWidth(0.2)
@@ -102,20 +143,20 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 }
 
 // renderTableSection renders a header or body row with auto-calculated height.
-func renderTableSection(state *renderState, row ast.Node, source []byte, widths []float64, alignments []extast.Alignment, header bool) {
+func renderTableSection(state *renderState, row ast.Node, source []byte, widths []float64, alignments []extast.Alignment, header bool, tm tableRenderMetrics) {
 	if header {
-		state.fpdf.SetFont(pdf.FontBody, "B", pdf.FontSizeTable)
+		state.fpdf.SetFont(pdf.FontBody, "B", tm.fontSize)
 		state.fpdf.SetFillColor(pdf.ColorTableHeader.R, pdf.ColorTableHeader.G, pdf.ColorTableHeader.B)
 	} else {
-		state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeTable)
+		state.fpdf.SetFont(pdf.FontBody, "", tm.fontSize)
 	}
-	rowH := calcRowHeight(state, row, source, widths)
-	renderRowCells(state, row, source, widths, alignments, rowH, header)
+	rowH := calcRowHeight(state, row, source, widths, tm)
+	renderRowCells(state, row, source, widths, alignments, rowH, header, tm)
 }
 
 // calcRowHeight computes the height of a table row by splitting each cell's
 // text into wrapped lines and returning the tallest cell height (plus padding).
-func calcRowHeight(state *renderState, row ast.Node, source []byte, widths []float64) float64 {
+func calcRowHeight(state *renderState, row ast.Node, source []byte, widths []float64, tm tableRenderMetrics) float64 {
 	maxLines := 1
 	col := 0
 	for cell := row.FirstChild(); cell != nil && col < len(widths); cell = cell.NextSibling() {
@@ -124,7 +165,7 @@ func calcRowHeight(state *renderState, row ast.Node, source []byte, widths []flo
 			continue
 		}
 		text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(cellNode, source))
-		innerW := widths[col] - 2*pdf.TableCellPadding
+		innerW := widths[col] - 2*tm.padding
 		if innerW < 1 {
 			innerW = 1
 		}
@@ -134,15 +175,15 @@ func calcRowHeight(state *renderState, row ast.Node, source []byte, widths []flo
 		}
 		col++
 	}
-	return float64(maxLines)*pdf.LineHeight + 2*pdf.TableCellPadding
+	return float64(maxLines)*tm.lineHeight + 2*tm.padding
 }
 
 // renderRowCells renders all cells in a row with the given pre-computed height.
-func renderRowCells(state *renderState, row ast.Node, source []byte, widths []float64, alignments []extast.Alignment, rowHeight float64, header bool) {
+func renderRowCells(state *renderState, row ast.Node, source []byte, widths []float64, alignments []extast.Alignment, rowHeight float64, header bool, tm tableRenderMetrics) {
 	if header {
-		state.fpdf.SetFont(pdf.FontBody, "B", pdf.FontSizeTable)
+		state.fpdf.SetFont(pdf.FontBody, "B", tm.fontSize)
 	} else {
-		state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeTable)
+		state.fpdf.SetFont(pdf.FontBody, "", tm.fontSize)
 	}
 
 	col := 0
@@ -153,13 +194,13 @@ func renderRowCells(state *renderState, row ast.Node, source []byte, widths []fl
 		}
 		text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(cellNode, source))
 		align := alignmentForColumn(cellNode, alignments, col)
-		drawTableCell(state, widths[col], rowHeight, text, align, header)
+		drawTableCell(state, widths[col], rowHeight, text, align, header, tm)
 		col++
 	}
 
 	// Fill remaining empty columns.
 	for col < len(widths) {
-		drawTableCell(state, widths[col], rowHeight, "", alignStr(extast.AlignNone), header)
+		drawTableCell(state, widths[col], rowHeight, "", alignStr(extast.AlignNone), header, tm)
 		col++
 	}
 	state.fpdf.Ln(rowHeight)
@@ -185,7 +226,9 @@ func measureTableMetrics(state *renderState, table *extast.Table, source []byte)
 		metrics[i].maxW = minTableColumnWidth
 	}
 
-	state.fpdf.SetFont(pdf.FontBody, "", pdf.FontSizeTable)
+	// Calculate metrics for current column count to get proper font size
+	tm := calculateTableMetrics(columnCount)
+	state.fpdf.SetFont(pdf.FontBody, "", tm.fontSize)
 	for row := table.FirstChild(); row != nil; row = row.NextSibling() {
 		col := 0
 		for cell := row.FirstChild(); cell != nil && col < columnCount; cell = cell.NextSibling() {
@@ -194,7 +237,7 @@ func measureTableMetrics(state *renderState, table *extast.Table, source []byte)
 				continue
 			}
 			text := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(cellNode, source))
-			padding := 2 * pdf.TableCellPadding
+			padding := 2 * tm.padding
 
 			// Max-content: full text width without wrapping.
 			maxW := state.fpdf.GetStringWidth(text) + padding
@@ -328,13 +371,13 @@ func tableColumnCount(table *extast.Table) int {
 	return count
 }
 
-func drawTableCell(state *renderState, width, height float64, text, align string, fill bool) {
+func drawTableCell(state *renderState, width, height float64, text, align string, fill bool, tm tableRenderMetrics) {
 	x, y := state.fpdf.GetXY()
 
 	// Draw cell border and optional fill.
 	state.fpdf.CellFormat(width, height, "", "1", 0, "", fill, 0, "")
 
-	innerWidth := width - 2*pdf.TableCellPadding
+	innerWidth := width - 2*tm.padding
 	if innerWidth < 1 {
 		innerWidth = 1
 	}
@@ -347,7 +390,7 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 
 	// Split text into wrapped lines and render each with font-segment awareness.
 	lines := splitTextLines(state.fpdf, text, innerWidth)
-	textY := y + pdf.TableCellPadding
+	textY := y + tm.padding
 	for _, lineStr := range lines {
 		segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), lineStr)
 
@@ -356,15 +399,15 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 		for _, seg := range segments {
 			switch seg.Kind {
 			case pdf.FontKindSymbols:
-				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, pdf.FontSizeTable)
+				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, tm.fontSize)
 				totalW += state.fpdf.GetStringWidth(seg.Text)
 			case pdf.FontKindEmoji:
-				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, pdf.FontSizeTable)
+				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, tm.fontSize)
 				// Substitute SMP emoji for width calculation
 				segText := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), seg.Text)
 				totalW += state.fpdf.GetStringWidth(segText)
 			default:
-				state.fpdf.SetFont(pdf.FontBody, bodyStyle, pdf.FontSizeTable)
+				state.fpdf.SetFont(pdf.FontBody, bodyStyle, tm.fontSize)
 				totalW += state.fpdf.GetStringWidth(seg.Text)
 			}
 		}
@@ -373,11 +416,11 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 		var startX float64
 		switch align {
 		case "CM":
-			startX = x + pdf.TableCellPadding + (innerWidth-totalW)/2
+			startX = x + tm.padding + (innerWidth-totalW)/2
 		case "RM":
-			startX = x + pdf.TableCellPadding + innerWidth - totalW
+			startX = x + tm.padding + innerWidth - totalW
 		default: // LM
-			startX = x + pdf.TableCellPadding
+			startX = x + tm.padding
 		}
 
 		// Render each segment with the appropriate font.
@@ -385,22 +428,22 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 		for _, seg := range segments {
 			switch seg.Kind {
 			case pdf.FontKindSymbols:
-				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, pdf.FontSizeTable)
-				state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, seg.Text)
+				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, tm.fontSize)
+				state.fpdf.Text(curX, textY+tm.lineHeight*0.75, seg.Text)
 				curX += state.fpdf.GetStringWidth(seg.Text)
 			case pdf.FontKindEmoji:
-				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, pdf.FontSizeTable)
+				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, tm.fontSize)
 				// Substitute SMP emoji to prevent fpdf panic (tables can't embed PNGs inline yet)
 				segText := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), seg.Text)
-				state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, segText)
+				state.fpdf.Text(curX, textY+tm.lineHeight*0.75, segText)
 				curX += state.fpdf.GetStringWidth(segText)
 			default:
-				state.fpdf.SetFont(pdf.FontBody, bodyStyle, pdf.FontSizeTable)
-				state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, seg.Text)
+				state.fpdf.SetFont(pdf.FontBody, bodyStyle, tm.fontSize)
+				state.fpdf.Text(curX, textY+tm.lineHeight*0.75, seg.Text)
 				curX += state.fpdf.GetStringWidth(seg.Text)
 			}
 		}
-		textY += pdf.LineHeight
+		textY += tm.lineHeight
 	}
 
 	// Restore X to after this cell for the next cell.
