@@ -94,10 +94,10 @@ func determineMinLinesAfterHeading(heading *ast.Heading) int {
 
 	switch nextSibling.(type) {
 	case *ast.Heading:
-		// Consecutive headings: keep them together by requiring space for both.
-		// Use penalty = height of next heading (converted to line equivalents).
-		// For simplicity, use 3 lines minimum to ensure visual grouping.
-		return 3
+		// Consecutive headings: NO orphan protection needed.
+		// LaTeX allows page breaks between headings - they are structural elements, not content.
+		// Orphan protection applies only to paragraph text following a heading.
+		return 0
 	case *extast.Table, *ast.FencedCodeBlock, *ast.CodeBlock:
 		// Heading followed by block element: keep heading with block start.
 		// Use 2 lines minimum (LaTeX standard).
