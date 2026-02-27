@@ -1,5 +1,12 @@
 # markdown2pdf
 
+[![Go Version](https://img.shields.io/github/go-mod/go-version/dlouwers/markdown2pdf)](https://go.dev/)
+[![License](https://img.shields.io/github/license/dlouwers/markdown2pdf)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/dlouwers/markdown2pdf)](https://github.com/dlouwers/markdown2pdf/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dlouwers/markdown2pdf)](https://goreportcard.com/report/github.com/dlouwers/markdown2pdf)
+
+Convert Markdown documents to clean, professional PDFs — with syntax-highlighted code blocks, tables, images, and Mermaid/D2 diagrams.
+
 Convert Markdown documents to clean, professional PDFs — with syntax-highlighted code blocks, tables, images, and Mermaid/D2 diagrams.
 
 ## Features
@@ -135,6 +142,15 @@ This builds binaries for:
 - Linux (amd64, arm64)
 - Windows (amd64)
 
+## Emoji Support
+
+Color emoji are rendered using **Twemoji** graphics (PNG format) for the top 100 most common emoji. Emoji outside this set fall back to the Noto Emoji font (black & white).
+
+Graphics: Copyright 2020 Twitter, Inc and other contributors. Licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)  
+Code: Licensed under the MIT License
+
 ## License
+
+See [LICENSE](LICENSE) for details.
 
 See [LICENSE](LICENSE) for details.
