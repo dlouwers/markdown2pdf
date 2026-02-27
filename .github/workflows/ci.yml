@@ -23,10 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Set up Docker Buildx for advanced caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Cache Go modules and build cache
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      # Build and test in devcontainer with GHA cache
       - name: Lint, test, and build in devcontainer
         uses: devcontainers/ci@v0.3
         with:
           push: never
+          cacheFrom: type=gha
+          cacheTo: type=gha,mode=max
           runCmd: |
             golangci-lint run --timeout=5m ./...
             go test -race -coverprofile=coverage.out ./...
