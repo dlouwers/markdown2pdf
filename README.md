@@ -28,16 +28,58 @@ Convert Markdown documents to clean, professional PDFs — with syntax-highlight
 
 ## Installation
 
-### From binary releases
+### Homebrew (macOS and Linux)
 
-Download a prebuilt binary from [GitHub Releases](https://github.com/dlouwers/markdown2pdf/releases):
+The easiest way to install on macOS or Linux:
 
 ```bash
-# macOS (Apple Silicon)
+brew install dlouwers/tap/markdown2pdf
+```
+
+### Binary releases
+
+Download prebuilt binaries from [GitHub Releases](https://github.com/dlouwers/markdown2pdf/releases):
+
+<details>
+<summary><b>macOS</b></summary>
+
+```bash
+# Apple Silicon (M1/M2/M3)
 curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_darwin_arm64.tar.gz
 tar xzf markdown2pdf.tar.gz
 sudo mv markdown2pdf /usr/local/bin/
+
+# Intel
+curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_darwin_amd64.tar.gz
+tar xzf markdown2pdf.tar.gz
+sudo mv markdown2pdf /usr/local/bin/
 ```
+
+</details>
+
+<details>
+<summary><b>Linux</b></summary>
+
+```bash
+# ARM64
+curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_linux_arm64.tar.gz
+tar xzf markdown2pdf.tar.gz
+sudo mv markdown2pdf /usr/local/bin/
+
+# AMD64/x86_64
+curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_linux_amd64.tar.gz
+tar xzf markdown2pdf.tar.gz
+sudo mv markdown2pdf /usr/local/bin/
+```
+
+</details>
+
+<details>
+<summary><b>Windows</b></summary>
+
+Download the `.zip` file for your architecture from [releases](https://github.com/dlouwers/markdown2pdf/releases), extract it, and add the binary to your PATH.
+
+</details>
 
 ### From source
 
