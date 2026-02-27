@@ -10,7 +10,7 @@ import (
 
 func TestParseReturnsDocument(t *testing.T) {
 	source := []byte("# Title\n\nParagraph text")
-	node, _ := Parse(source)
+	node, _, _ := Parse(source)
 	if node == nil {
 		t.Fatal("expected non-nil node")
 	}
@@ -26,7 +26,7 @@ func TestParseBasicMarkdown(t *testing.T) {
 		t.Fatalf("read testdata: %v", err)
 	}
 
-	node, _ := Parse(source)
+	node, _, _ := Parse(source)
 	if node.Kind() != ast.KindDocument {
 		t.Fatalf("expected document node, got %s", node.Kind())
 	}

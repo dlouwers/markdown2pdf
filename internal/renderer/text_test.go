@@ -15,7 +15,7 @@ import (
 
 func TestHeadingFontSize(t *testing.T) {
 	source := []byte("# Title")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -42,7 +42,7 @@ func TestHeadingFontSize(t *testing.T) {
 
 func TestParagraphTextAppearsInPDF(t *testing.T) {
 	source := []byte("Paragraph with **bold** and *italic* text.")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -66,7 +66,7 @@ func TestParagraphTextAppearsInPDF(t *testing.T) {
 
 func TestBoldItalicStyles(t *testing.T) {
 	source := []byte("**bold** *italic*")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -100,7 +100,7 @@ func TestBoldItalicStyles(t *testing.T) {
 
 func TestBlockquoteRenders(t *testing.T) {
 	source := []byte("> This is a blockquote.\n> With multiple lines.")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -119,7 +119,7 @@ func TestBlockquoteRenders(t *testing.T) {
 
 func TestThematicBreakRenders(t *testing.T) {
 	source := []byte("Text above\n\n---\n\nText below")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -138,7 +138,7 @@ func TestThematicBreakRenders(t *testing.T) {
 
 func TestAllHeadingLevels(t *testing.T) {
 	source := []byte("# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6\n")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -157,7 +157,7 @@ func TestAllHeadingLevels(t *testing.T) {
 
 func TestInlineCodeRenders(t *testing.T) {
 	source := []byte("Use `fmt.Println` for output.")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -176,7 +176,7 @@ func TestInlineCodeRenders(t *testing.T) {
 
 func TestLinkRenders(t *testing.T) {
 	source := []byte("Visit [example](https://example.com) for details.")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -208,7 +208,7 @@ This is a paragraph with **bold**, *italic*, and ` + "`code`" + `.
 
 Visit [example](https://example.com).
 `)
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -258,7 +258,7 @@ func TestHeadingOrphanProtection(t *testing.T) {
 	// Fill a page until near the bottom, then render a heading.
 	// Orphan protection should push it to the next page.
 	source := []byte("# Heading")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -288,7 +288,7 @@ func TestConsecutiveHeadingsOrphanProtection(t *testing.T) {
 ## Subheading
 
 Some paragraph content here.`)
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -318,7 +318,7 @@ func TestHeadingFollowedByTable(t *testing.T) {
 | Col1 | Col2 |
 |------|------|
 | A    | B    |`)
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -343,7 +343,7 @@ func TestHeadingFollowedByTable(t *testing.T) {
 func TestHeadingFollowedByCodeBlock(t *testing.T) {
 	// Test that a heading followed by a code block is kept together.
 	source := []byte("# Code Section\n\n```go\npackage main\n```")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -366,7 +366,7 @@ func TestHeadingFollowedByCodeBlock(t *testing.T) {
 func TestHeadingAtEOF(t *testing.T) {
 	// Test that a heading at the end of document doesn't force unnecessary page break.
 	source := []byte("# Final Heading")
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
@@ -397,7 +397,7 @@ func TestMajorHeadingProtection(t *testing.T) {
 	source := []byte(`# Major Heading
 
 Paragraph content here.`)
-	node, _ := parser.Parse(source)
+	node, _, _ := parser.Parse(source)
 	doc, err := pdf.NewDocument()
 	if err != nil {
 		t.Fatalf("new document: %v", err)
