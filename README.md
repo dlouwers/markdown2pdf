@@ -17,6 +17,8 @@ Convert Markdown documents to clean, professional PDFs — with syntax-highlight
 - **Mermaid diagrams** — rendered via `mmdc` (mermaid-cli)
 - **D2 diagrams** — rendered natively via the D2 Go library
 - **Table of contents** — optional `--toc` flag with clickable links
+- **Cover pages** — optional `--cover-page` flag generates a professional cover page from YAML frontmatter
+
 - **Orphan protection** — headings never appear stranded at the bottom of a page
 - **Noto Sans font** — embedded for full UTF-8 support (override with `--font`)
 - **Symbol font fallback** — embedded Noto Sans Symbols 2 renders glyphs the body font lacks (override with `--symbols-font`)
@@ -56,6 +58,13 @@ markdown2pdf -o output.pdf document.md
 # Generate with table of contents
 markdown2pdf --toc document.md
 
+# Generate with cover page from frontmatter metadata
+markdown2pdf --cover-page document.md
+
+# Combine cover page with table of contents
+markdown2pdf --cover-page --toc document.md
+
+
 # Print version
 markdown2pdf --version
 
@@ -69,6 +78,33 @@ markdown2pdf --symbols-font /path/to/Symbols.tar.gz document.md
 markdown2pdf --emoji-font /path/to/Emoji.tar.gz document.md
 ```
 
+
+## Cover Pages
+
+Generate professional cover pages from YAML frontmatter metadata. When the `--cover-page` flag is used, markdown2pdf extracts metadata from the frontmatter block and renders it on a dedicated first page.
+
+### Frontmatter Format
+
+Add a YAML block at the start of your markdown file (delimited by `---`):
+
+```yaml
+---
+title: My Document Title
+subtitle: An Optional Subtitle
+author: Your Name
+date: February 27, 2026
+version: 1.0.0
+---
+```
+
+**Supported fields:**
+- `title` (required for cover page): Large, bold, centered at top
+- `subtitle` (optional): Italic, below title
+- `author` (optional): Centered in middle section
+- `date` (optional): Centered below author
+- `version` (optional): Displayed as "Version X.Y.Z"
+
+All fields except `title` are optional. If `--cover-page` is specified but no frontmatter exists or title is missing, no cover page is generated.
 
 ## Fonts
 
