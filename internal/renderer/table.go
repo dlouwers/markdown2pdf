@@ -70,7 +70,6 @@ func renderTable(state *renderState, table *extast.Table, source []byte) {
 		renderTableSection(state, header, source, columnWidths, alignments, true)
 	}
 
-
 	for row := table.FirstChild(); row != nil; row = row.NextSibling() {
 		bodyRow, ok := row.(*extast.TableRow)
 		if !ok {
@@ -221,12 +220,12 @@ func measureTableMetrics(state *renderState, table *extast.Table, source []byte)
 }
 
 // distributeColumnWidths implements CSS 2.1 auto table layout.
-// 1. If total max-content fits, use max-content widths (no wrapping needed).
-// 2. If total min-content exceeds table width, use proportional min widths.
-// 3. Otherwise, give each column its min-content width, then distribute the
-//    remaining space proportionally to each column's flex (max - min).
-//    This ensures narrow columns keep their natural width while wider
-//    columns absorb compression, preventing mid-word breaks.
+//  1. If total max-content fits, use max-content widths (no wrapping needed).
+//  2. If total min-content exceeds table width, use proportional min widths.
+//  3. Otherwise, give each column its min-content width, then distribute the
+//     remaining space proportionally to each column's flex (max - min).
+//     This ensures narrow columns keep their natural width while wider
+//     columns absorb compression, preventing mid-word breaks.
 func distributeColumnWidths(metrics []columnMetrics, tableWidth float64) []float64 {
 	n := len(metrics)
 	widths := make([]float64, n)

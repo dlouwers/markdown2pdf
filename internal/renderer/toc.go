@@ -27,7 +27,7 @@ func collectTOCEntries(node ast.Node, source []byte, state *renderState) []tocEn
 		}
 		linkID := state.fpdf.AddLink()
 		entries = append(entries, tocEntry{
-		text:   pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(heading, source)),
+			text:   pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(heading, source)),
 			level:  heading.Level,
 			linkID: linkID,
 		})
