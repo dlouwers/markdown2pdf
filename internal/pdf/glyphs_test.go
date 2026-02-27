@@ -211,3 +211,44 @@ func TestSegmentText_ThreeTierCascade(t *testing.T) {
 		t.Error("expected emoji segments")
 	}
 }
+
+func TestSegmentText_SMPCharacterSkipped(t *testing.T) {
+	// SMP characters (codepoints > 0xFFFF) should be silently skipped
+	// to prevent fpdf index out of range panics.
+	body := notoSansRegular
+	sym := notoSansSymbols2Regular
+	emoji := notoEmojiRegular
+
+	// U+1F7A5 (128997) is outside BMP - should be skipped entirely
+	segs := SegmentText(body, sym, emoji, "Before \U0001F7A5 After")
+
+	// Should produce "Before  After" (note double space where char was)
+	// or "Before After" if spacing is normalized
+	var combined string
+	for _, s := range segs {
+		combined += s.Text
+	}
+
+	// The SMP character should not appear in output
+	if len(combined) > 0 && combined[0] > 127 {
+		for _, r := range combined {
+			if r > 0xFFFF {
+				t.Errorf("SMP character U+%04X should have been skipped, but appears in output: %q", r, combined)
+			}
+		}
+	}
+
+	// Verify "Before" and "After" are still present
+	if !contains(combined, "Before") || !contains(combined, "After") {
+		t.Errorf("expected 'Before' and 'After' in output, got %q", combined)
+	}
+}
+
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
