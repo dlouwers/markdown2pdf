@@ -48,6 +48,7 @@ const (
 	ImageMarginV    = 4.0
 	SVGRenderScale  = 2.0
 
+	CodeContinuationIndicator = " →" // → shows code wraps to next line (falls back to "->" if unsupported)
 	// Heading spacing (LaTeX article.cls inspired, ~1.5:1 before:after ratio).
 	// LaTeX \section uses 3.5ex/2.3ex (~1.52:1), CSS uses 1:1 symmetric.
 	// We use ~1.4–1.5:1 as a balanced professional compromise.
