@@ -31,6 +31,7 @@ func run(args []string) int {
 		output          string
 		showVersion     bool
 		toc             bool
+		coverPage       bool
 		fontPath        string
 		symbolsFontPath string
 		emojiFontPath   string
@@ -39,6 +40,8 @@ func run(args []string) int {
 	fs.StringVar(&output, "o", "", "output PDF file path (default: input with .pdf extension)")
 	fs.BoolVar(&showVersion, "version", false, "print version information and exit")
 	fs.BoolVar(&toc, "toc", false, "generate a table of contents")
+	fs.BoolVar(&coverPage, "cover-page", false, "generate a cover page from frontmatter metadata")
+
 	fs.StringVar(&fontPath, "font", "", "path to a .zip or .tar.gz archive containing TTF font files")
 	fs.StringVar(&symbolsFontPath, "symbols-font", "", "path to a .zip or .tar.gz archive containing a TTF symbols fallback font")
 	fs.StringVar(&emojiFontPath, "emoji-font", "", "path to a .zip or .tar.gz archive containing a TTF emoji fallback font")
@@ -89,8 +92,8 @@ func run(args []string) int {
 		return 1
 	}
 
-	// Parse markdown to AST.
-	node, src := parser.Parse(source)
+	// Parse markdown to AST and extract metadata.
+	node, src, metadata := parser.Parse(source)
 
 	// Create PDF document.
 	var opts []pdf.DocumentOption
@@ -113,6 +116,8 @@ func run(args []string) int {
 	// Render AST to PDF.
 	r := renderer.New()
 	r.TOC = toc
+	r.CoverPage = coverPage
+	r.Metadata = metadata
 	if err := r.Render(doc, node, src); err != nil {
 		fmt.Fprintf(os.Stderr, "error: rendering PDF: %v\n", err)
 		return 1
