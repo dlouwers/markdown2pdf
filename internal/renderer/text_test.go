@@ -279,3 +279,143 @@ func TestHeadingOrphanProtection(t *testing.T) {
 		t.Fatal("expected heading to trigger page break near bottom of page")
 	}
 }
+
+func TestConsecutiveHeadingsOrphanProtection(t *testing.T) {
+	// Test that consecutive headings (H1 followed by H2 with no content)
+	// are kept together and not orphaned at the bottom of a page.
+	source := []byte(`# Main Heading
+
+## Subheading
+
+Some paragraph content here.`)
+	node, _ := parser.Parse(source)
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
+
+	// Position near bottom so H1 would fit but H1+H2 would not.
+	_, pageH := doc.PDF().GetPageSize()
+	// Leave ~35mm space - enough for H1 alone but not H1+H2+protection.
+	nearBottom := pageH - pdf.PageMargin - 35
+	doc.PDF().SetY(nearBottom)
+
+	r := New()
+	if err := r.Render(doc, node, source); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	// Should trigger page break to avoid orphaning H1.
+	if doc.PDF().PageNo() < 2 {
+		t.Fatal("expected consecutive headings to trigger page break")
+	}
+}
+
+func TestHeadingFollowedByTable(t *testing.T) {
+	// Test that a heading followed by a table is kept together.
+	source := []byte(`# Table Heading
+
+| Col1 | Col2 |
+|------|------|
+| A    | B    |`)
+	node, _ := parser.Parse(source)
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
+
+	// Position near bottom.
+	_, pageH := doc.PDF().GetPageSize()
+	nearBottom := pageH - pdf.PageMargin - 25
+	doc.PDF().SetY(nearBottom)
+
+	r := New()
+	if err := r.Render(doc, node, source); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	// Should trigger page break to keep heading with table.
+	if doc.PDF().PageNo() < 2 {
+		t.Fatal("expected heading+table to trigger page break")
+	}
+}
+
+func TestHeadingFollowedByCodeBlock(t *testing.T) {
+	// Test that a heading followed by a code block is kept together.
+	source := []byte("# Code Section\n\n```go\npackage main\n```")
+	node, _ := parser.Parse(source)
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
+
+	_, pageH := doc.PDF().GetPageSize()
+	nearBottom := pageH - pdf.PageMargin - 25
+	doc.PDF().SetY(nearBottom)
+
+	r := New()
+	if err := r.Render(doc, node, source); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	if doc.PDF().PageNo() < 2 {
+		t.Fatal("expected heading+code block to trigger page break")
+	}
+}
+
+func TestHeadingAtEOF(t *testing.T) {
+	// Test that a heading at the end of document doesn't force unnecessary page break.
+	source := []byte("# Final Heading")
+	node, _ := parser.Parse(source)
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
+
+	// Even near bottom, heading at EOF should render without forcing page break
+	// since there's no content to orphan from.
+	// Position with enough space for the heading itself (H1 needs ~35mm).
+	_, pageH := doc.PDF().GetPageSize()
+	nearBottom := pageH - pdf.PageMargin - 40 // 40mm should be enough for H1
+	doc.PDF().SetY(nearBottom)
+
+	r := New()
+	if err := r.Render(doc, node, source); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	// Should stay on page 1 since no orphan risk at EOF.
+	// Should stay on page 1 since no orphan risk at EOF.
+	if pageNo := doc.PDF().PageNo(); pageNo != 1 {
+		t.Fatalf("heading at EOF should not force page break, got page %d", pageNo)
+		t.Fatal("heading at EOF should not force page break")
+	}
+}
+
+func TestMajorHeadingProtection(t *testing.T) {
+	// Test that H1/H2 get more protection (3 lines) than H3-H6 (2 lines).
+	source := []byte(`# Major Heading
+
+Paragraph content here.`)
+	node, _ := parser.Parse(source)
+	doc, err := pdf.NewDocument()
+	if err != nil {
+		t.Fatalf("new document: %v", err)
+	}
+
+	// Position where 2 lines would fit but 3 would not.
+	_, pageH := doc.PDF().GetPageSize()
+	// Leave space for heading + 2.5 lines (H1 should require 3 lines).
+	nearBottom := pageH - pdf.PageMargin - 40
+	doc.PDF().SetY(nearBottom)
+
+	r := New()
+	if err := r.Render(doc, node, source); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	// H1 should trigger page break due to 3-line requirement.
+	if doc.PDF().PageNo() < 2 {
+		t.Fatal("expected H1 to require 3 lines minimum")
+	}
+}

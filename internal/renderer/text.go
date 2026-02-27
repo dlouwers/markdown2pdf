@@ -80,6 +80,60 @@ func renderNode(state *renderState, node ast.Node, source []byte) error {
 	})
 }
 
+// determineMinLinesAfterHeading inspects what follows a heading to determine
+// the minimum number of body lines to keep with the heading (orphan protection).
+// Based on LaTeX/TeX standards: minimum 2 lines for regular headings, 3 for major.
+func determineMinLinesAfterHeading(heading *ast.Heading) int {
+	// Find what follows this heading by traversing siblings.
+	nextSibling := findNextSibling(heading)
+	if nextSibling == nil {
+		// Heading at end of document - no orphan risk.
+		return 0
+	}
+
+	switch nextSibling.(type) {
+	case *ast.Heading:
+		// Consecutive headings: keep them together by requiring space for both.
+		// Use penalty = height of next heading (converted to line equivalents).
+		// For simplicity, use 3 lines minimum to ensure visual grouping.
+		return 3
+	case *extast.Table, *ast.FencedCodeBlock, *ast.CodeBlock:
+		// Heading followed by block element: keep heading with block start.
+		// Use 2 lines minimum (LaTeX standard).
+		return 2
+	case *ast.Paragraph, *ast.List, *ast.Blockquote:
+		// Heading followed by text content: use LaTeX standard.
+		// H1/H2 get 3 lines minimum (major headings), H3-H6 get 2 lines.
+		if heading.Level <= 2 {
+			return 3 // Major headings
+		}
+		return 2 // Minor headings
+	default:
+		// Unknown content type: use conservative 2 lines.
+		return 2
+	}
+}
+
+// findNextSibling returns the next sibling node in the AST, or nil if none exists.
+func findNextSibling(node ast.Node) ast.Node {
+	parent := node.Parent()
+	if parent == nil {
+		return nil
+	}
+
+	// Walk through parent's children to find this node, then return the next one.
+	found := false
+	for child := parent.FirstChild(); child != nil; child = child.NextSibling() {
+		if found {
+			return child
+		}
+		if child == node {
+			found = true
+		}
+	}
+	return nil
+}
+
 func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
 	size := headingFontSize(heading.Level)
 	lineH := pdf.HeadingLineHeight(size)
@@ -95,19 +149,26 @@ func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
 	lines := splitTextLines(state.fpdf, text, textWidth)
 	headingHeight := spaceBefore + float64(len(lines))*lineH + spaceAfter
 
-	// Orphan protection: ensure heading + at least one body line fit on the
-	// current page. A heading stranded at the bottom looks bad.
-	bodyLine := pdf.LineHeight
-	needed := headingHeight + bodyLine
+	// Enhanced orphan protection following LaTeX/TeX standards:
+	// - Ensure heading + minimum 2-3 body lines fit (not just 1)
+	// - Handle consecutive headings (keep them together)
+	// - Handle heading followed by block elements
+	minLinesAfter := determineMinLinesAfterHeading(heading)
 
-	_, topMargin, _, bottomMargin := state.fpdf.GetMargins()
-	_, pageH := state.fpdf.GetPageSize()
-	maxPageH := pageH - topMargin - bottomMargin
-	remaining := pageH - bottomMargin - state.fpdf.GetY()
+	// Only apply orphan protection if there's content after the heading.
+	// A heading at EOF has minLinesAfter=0 and needs no protection.
+	if minLinesAfter > 0 {
+		needed := headingHeight + float64(minLinesAfter)*pdf.LineHeight
 
-	// Only break if we're not already near the top and there isn't enough room.
-	if needed > remaining && remaining < maxPageH-1 {
-		state.fpdf.AddPage()
+		_, topMargin, _, bottomMargin := state.fpdf.GetMargins()
+		_, pageH := state.fpdf.GetPageSize()
+		maxPageH := pageH - topMargin - bottomMargin
+		remaining := pageH - bottomMargin - state.fpdf.GetY()
+
+		// Only break if we're not already near the top and there isn't enough room.
+		if needed > remaining && remaining < maxPageH-1 {
+			state.fpdf.AddPage()
+		}
 	}
 
 	// Set TOC link destination at the heading position.
