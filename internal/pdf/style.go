@@ -15,6 +15,14 @@ const (
 	FontSizeH4   = 14.0
 	FontSizeH5   = 12.0
 	FontSizeH6   = 11.0
+	FontSizeCoverTitle    = 36.0  // Large title on cover page
+	FontSizeCoverSubtitle = 18.0  // Subtitle below title
+	FontSizeCoverMeta     = 14.0  // Author, date, version
+
+	CoverTitleY    = 80.0  // Y position for title (from top, mm)
+	CoverSpacing   = 12.0  // Vertical spacing between cover elements
+	CoverMetaSpace = 8.0   // Spacing between metadata fields
+
 
 	LineHeight = 6.0
 
