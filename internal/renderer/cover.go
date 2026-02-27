@@ -15,24 +15,33 @@ func renderCoverPage(state *renderState, metadata *parser.Metadata) {
 
 	fpdf := state.fpdf
 	pageWidth, pageHeight := fpdf.GetPageSize()
-	_, _, rightMargin, _ := fpdf.GetMargins()
-	contentWidth := pageWidth - pdf.PageMargin - rightMargin
+	leftMargin, _, rightMargin, _ := fpdf.GetMargins()
+	contentWidth := pageWidth - leftMargin - rightMargin
 
 	// Start Y position for title (upper third of page)
 	y := pdf.CoverTitleY
 
-	// Title (large, bold, centered)
+	// Title (large, bold, centered) - wrap at word boundaries following LaTeX conventions
 	fpdf.SetFont(pdf.FontBody, "B", pdf.FontSizeCoverTitle)
-	fpdf.SetY(y)
-	fpdf.CellFormat(contentWidth, pdf.FontSizeCoverTitle*0.353, metadata.Title, "", 0, "C", false, 0, "")
-	y += pdf.FontSizeCoverTitle*0.353 + pdf.CoverSpacing
+	titleLines := splitTextLines(fpdf, metadata.Title, contentWidth)
+	lineHeight := pdf.FontSizeCoverTitle * 0.353 // ~12.7mm for 36pt font
+	for _, line := range titleLines {
+		fpdf.SetY(y)
+		fpdf.CellFormat(contentWidth, lineHeight, line, "", 0, "C", false, 0, "")
+		y += lineHeight
+	}
+	y += pdf.CoverSpacing
 
 	// Subtitle (if present)
 	if metadata.Subtitle != "" {
 		fpdf.SetFont(pdf.FontBody, "I", pdf.FontSizeCoverSubtitle)
-		fpdf.SetY(y)
-		fpdf.CellFormat(contentWidth, pdf.FontSizeCoverSubtitle*0.353, metadata.Subtitle, "", 0, "C", false, 0, "")
-		// y updated here but immediately overwritten below, so assignment removed
+		subtitleLines := splitTextLines(fpdf, metadata.Subtitle, contentWidth)
+		subtitleLineHeight := pdf.FontSizeCoverSubtitle * 0.353
+		for _, line := range subtitleLines {
+			fpdf.SetY(y)
+			fpdf.CellFormat(contentWidth, subtitleLineHeight, line, "", 0, "C", false, 0, "")
+			y += subtitleLineHeight
+		}
 	}
 
 	// Move to middle section for metadata
