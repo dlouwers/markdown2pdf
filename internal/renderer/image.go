@@ -233,6 +233,7 @@ func embedImageBytes(state *renderState, data []byte, imgType, label string) {
 
 // embedEmojiInline embeds a Twemoji PNG inline at the current cursor position.
 // Unlike embedImage (block-level), this advances X not Y.
+// Adds spacing before/after emoji for better visual separation from surrounding text.
 // Returns true on success, false if embedding failed (caller should fallback to font).
 func embedEmojiInline(state *renderState, pngData []byte, r rune) bool {
 	imageCounter++
@@ -247,8 +248,15 @@ func embedEmojiInline(state *renderState, pngData []byte, r rune) bool {
 	// Size emoji to match line height (slightly smaller for better alignment)
 	size := pdf.LineHeight * 0.9
 
+	// Add spacing before/after emoji (0.15em is standard for inline emoji)
+	// This prevents emoji from touching adjacent characters
+	spacing := pdf.FontSizeBody * 0.15
+
 	// Get current position
 	x, y := state.fpdf.GetX(), state.fpdf.GetY()
+
+	// Add leading space
+	x += spacing
 
 	// Calculate baseline offset to align emoji bottom with text baseline
 	// Text sits on baseline; emoji should too
@@ -257,8 +265,8 @@ func embedEmojiInline(state *renderState, pngData []byte, r rune) bool {
 	// Embed image at current position with baseline offset
 	state.fpdf.Image(name, x, y+yOffset, size, size, false, "", 0, "")
 
-	// Advance cursor by image width (not height - this is inline)
-	state.fpdf.SetX(x + size)
+	// Advance cursor by image width + trailing space
+	state.fpdf.SetX(x + size + spacing)
 
 	return true
 }
