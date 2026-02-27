@@ -6,6 +6,7 @@ import (
 
 	"github.com/dlouwers/markdown2pdf/internal/emoji"
 )
+
 // FontKind indicates which font family a text segment should be rendered with.
 type FontKind int
 
@@ -51,7 +52,7 @@ var emojiSubstitutions = map[rune]string{
 	'\u2191': "^",   // ↑ UPWARDS ARROW
 	'\u2192': "->",  // → RIGHTWARDS ARROW
 	'\u2193': "v",   // ↓ DOWNWARDS ARROW
-	'\u21D0': "<=", // ⇐ LEFTWARDS DOUBLE ARROW
+	'\u21D0': "<=",  // ⇐ LEFTWARDS DOUBLE ARROW
 	'\u21D1': "^^",  // ⇑ UPWARDS DOUBLE ARROW
 	'\u21D2': "=>",  // ⇒ RIGHTWARDS DOUBLE ARROW
 	'\u21D3': "vv",  // ⇓ DOWNWARDS DOUBLE ARROW

@@ -3,26 +3,25 @@ package pdf
 import "github.com/go-pdf/fpdf"
 
 const (
-	FontBody = "NotoSans"
-	FontCode = "NotoSansMono"
+	FontBody    = "NotoSans"
+	FontCode    = "NotoSansMono"
 	FontSymbols = "NotoSansSymbols2"
 	FontEmoji   = "NotoEmoji"
 
-	FontSizeBody = 11.0
-	FontSizeH1   = 24.0
-	FontSizeH2   = 20.0
-	FontSizeH3   = 16.0
-	FontSizeH4   = 14.0
-	FontSizeH5   = 12.0
-	FontSizeH6   = 11.0
-	FontSizeCoverTitle    = 36.0  // Large title on cover page
-	FontSizeCoverSubtitle = 18.0  // Subtitle below title
-	FontSizeCoverMeta     = 14.0  // Author, date, version
+	FontSizeBody          = 11.0
+	FontSizeH1            = 24.0
+	FontSizeH2            = 20.0
+	FontSizeH3            = 16.0
+	FontSizeH4            = 14.0
+	FontSizeH5            = 12.0
+	FontSizeH6            = 11.0
+	FontSizeCoverTitle    = 36.0 // Large title on cover page
+	FontSizeCoverSubtitle = 18.0 // Subtitle below title
+	FontSizeCoverMeta     = 14.0 // Author, date, version
 
-	CoverTitleY    = 80.0  // Y position for title (from top, mm)
-	CoverSpacing   = 12.0  // Vertical spacing between cover elements
-	CoverMetaSpace = 8.0   // Spacing between metadata fields
-
+	CoverTitleY    = 80.0 // Y position for title (from top, mm)
+	CoverSpacing   = 12.0 // Vertical spacing between cover elements
+	CoverMetaSpace = 8.0  // Spacing between metadata fields
 
 	LineHeight = 6.0
 
@@ -35,9 +34,9 @@ const (
 	CodeBlockPadding = 6.0
 	CodeBlockMarginV = 4.0
 
-	ListIndent      = 7.0  // left margin increase per nesting level (LaTeX ~2.5em)
-	ListLabelWidth  = 5.0  // width of the label box (right-aligned labels)
-	ListLabelSep    = 2.0  // gap between label box and text (LaTeX \labelsep ≈ 5pt)
+	ListIndent      = 7.0 // left margin increase per nesting level (LaTeX ~2.5em)
+	ListLabelWidth  = 5.0 // width of the label box (right-aligned labels)
+	ListLabelSep    = 2.0 // gap between label box and text (LaTeX \labelsep ≈ 5pt)
 	ListBulletSize  = 2.0
 	ListItemSpacing = 2.0
 
@@ -45,8 +44,8 @@ const (
 	TableBorderWidth = 0.3
 	FontSizeTable    = 10.0
 
-	ImageMarginV    = 4.0
-	SVGRenderScale  = 2.0
+	ImageMarginV   = 4.0
+	SVGRenderScale = 2.0
 
 	CodeContinuationIndicator = " →" // → shows code wraps to next line (falls back to "->" if unsupported)
 	// Heading spacing (LaTeX article.cls inspired, ~1.5:1 before:after ratio).
