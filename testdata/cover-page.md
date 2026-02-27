@@ -1,6 +1,6 @@
 ---
-title: markdown2pdf User Guide
-subtitle: A Comprehensive Guide to Converting Markdown to PDF
+title: markdown2pdf User Guide - A Complete Reference for Converting Markdown Documents to Professional PDF Format
+subtitle: Comprehensive documentation covering installation, usage, features, and best practices for document generation
 author: Documentation Team
 date: February 27, 2026
 version: 1.0.0
