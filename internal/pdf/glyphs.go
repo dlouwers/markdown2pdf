@@ -3,8 +3,9 @@ package pdf
 import (
 	"strings"
 	"unicode/utf8"
-)
 
+	"github.com/dlouwers/markdown2pdf/internal/emoji"
+)
 // FontKind indicates which font family a text segment should be rendered with.
 type FontKind int
 
@@ -142,7 +143,13 @@ func SegmentText(bodyFont, symbolsFont, emojiFont []byte, text string) []TextSeg
 			continue
 		}
 
+		// Check if emoji font can render this rune
 		emojiSupports := hasEmoji && FontSupportsGlyph(emojiFont, r)
+		// Also route common SMP emoji (>U+FFFF) to emoji segment for PNG rendering attempt,
+		// but let BMP emoji fall through to normal font checks (they can use fonts safely)
+		if !emojiSupports && emoji.IsCommonEmoji(r) && r > 0xFFFF {
+			emojiSupports = true
+		}
 		if emojiSupports {
 			if currentKind != FontKindEmoji {
 				flush(FontKindEmoji)
@@ -217,9 +224,11 @@ func SubstituteUnsupportedGlyphs(bodyFont, symbolsFont, emojiFont []byte, text s
 		sub, hasSub := emojiSubstitutions[r]
 		if hasSub {
 			b.WriteString(sub)
-		} else {
+		} else if r <= 0xFFFF {
+			// Keep BMP characters even without substitution (fonts might support them)
 			b.WriteRune(r)
 		}
+		// Skip SMP characters (>U+FFFF) without substitution - fpdf cannot handle them
 		i += size
 	}
 
