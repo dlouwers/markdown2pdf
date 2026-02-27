@@ -455,10 +455,42 @@ func writeCode(state *renderState, text string) {
 	}
 	// Substitute unsupported glyphs (including SMP emoji) to prevent fpdf panics
 	text = pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), text)
-	state.fpdf.SetFillColor(pdf.ColorCodeFill.R, pdf.ColorCodeFill.G, pdf.ColorCodeFill.B)
-	width := state.fpdf.GetStringWidth(text) + 2
-	state.fpdf.CellFormat(width, pdf.LineHeight, text, "", 0, "", true, 0, "")
-	state.fpdf.SetFillColor(255, 255, 255)
+
+	// Calculate available width for code
+	left, _, right, _ := state.fpdf.GetMargins()
+	pageW, _ := state.fpdf.GetPageSize()
+	maxWidth := pageW - left - right
+
+	// Split code at safe break points if it doesn't fit
+	segments := splitCodeAtBreakPoints(state.fpdf, text, maxWidth, pdf.CodeContinuationIndicator)
+
+	// Render each segment with background color
+	for i, segment := range segments {
+		state.fpdf.SetFillColor(pdf.ColorCodeFill.R, pdf.ColorCodeFill.G, pdf.ColorCodeFill.B)
+		
+		// Calculate segment width with padding
+		segmentWidth := state.fpdf.GetStringWidth(segment) + 2
+		
+		// Check if segment fits on current line
+		currentX := state.fpdf.GetX()
+		left, _, right, _ := state.fpdf.GetMargins()
+		pageW, _ := state.fpdf.GetPageSize()
+		availableWidth := pageW - right - currentX
+		
+		// If segment doesn't fit and we're not at the start of the line, move to next line
+		if segmentWidth > availableWidth && currentX > left {
+			state.fpdf.Ln(pdf.LineHeight)
+		}
+		
+		// Render segment
+		state.fpdf.CellFormat(segmentWidth, pdf.LineHeight, segment, "", 0, "", true, 0, "")
+		state.fpdf.SetFillColor(255, 255, 255)
+		
+		// Add line break after each segment except the last
+		if i < len(segments)-1 {
+			state.fpdf.Ln(pdf.LineHeight)
+		}
+	}
 }
 
 func headingFontSize(level int) float64 {
