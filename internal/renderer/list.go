@@ -68,12 +68,15 @@ func renderListItem(state *renderState, list *ast.List, item *ast.ListItem, sour
 			state.fpdf.SetMargins(textStart, top, right)
 			state.fpdf.SetX(textStart)
 			renderInline(state, n, source)
-			state.fpdf.Ln(pdf.LineHeight)
 			state.fpdf.SetMargins(left, top, right)
+			state.fpdf.Ln(pdf.LineHeight)
 		case *ast.List:
 			renderList(state, n, source, depth+1)
 		default:
+			state.fpdf.SetMargins(textStart, top, right)
+			state.fpdf.SetX(textStart)
 			renderInline(state, child, source)
+			state.fpdf.SetMargins(left, top, right)
 			state.fpdf.Ln(pdf.LineHeight)
 		}
 	}
