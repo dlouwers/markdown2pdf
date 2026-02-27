@@ -358,12 +358,16 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 			switch seg.Kind {
 			case pdf.FontKindSymbols:
 				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, pdf.FontSizeTable)
+				totalW += state.fpdf.GetStringWidth(seg.Text)
 			case pdf.FontKindEmoji:
 				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, pdf.FontSizeTable)
+				// Substitute SMP emoji for width calculation
+				segText := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), seg.Text)
+				totalW += state.fpdf.GetStringWidth(segText)
 			default:
 				state.fpdf.SetFont(pdf.FontBody, bodyStyle, pdf.FontSizeTable)
+				totalW += state.fpdf.GetStringWidth(seg.Text)
 			}
-			totalW += state.fpdf.GetStringWidth(seg.Text)
 		}
 
 		// Determine starting X based on alignment.
@@ -383,13 +387,19 @@ func drawTableCell(state *renderState, width, height float64, text, align string
 			switch seg.Kind {
 			case pdf.FontKindSymbols:
 				state.fpdf.SetFont(pdf.FontSymbols, bodyStyle, pdf.FontSizeTable)
+				state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, seg.Text)
+				curX += state.fpdf.GetStringWidth(seg.Text)
 			case pdf.FontKindEmoji:
 				state.fpdf.SetFont(pdf.FontEmoji, bodyStyle, pdf.FontSizeTable)
+				// Substitute SMP emoji to prevent fpdf panic (tables can't embed PNGs inline yet)
+				segText := pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), seg.Text)
+				state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, segText)
+				curX += state.fpdf.GetStringWidth(segText)
 			default:
 				state.fpdf.SetFont(pdf.FontBody, bodyStyle, pdf.FontSizeTable)
+				state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, seg.Text)
+				curX += state.fpdf.GetStringWidth(seg.Text)
 			}
-			state.fpdf.Text(curX, textY+pdf.LineHeight*0.75, seg.Text)
-			curX += state.fpdf.GetStringWidth(seg.Text)
 		}
 		textY += pdf.LineHeight
 	}
