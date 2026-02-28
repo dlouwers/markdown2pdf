@@ -403,21 +403,12 @@ func renderImagePlaceholder(state *renderState, label, reason string) {
 	state.fpdf.SetTextColor(150, 150, 150)
 	text := fmt.Sprintf("[Image: %s — %s]", label, reason)
 	
-	// Calculate text height using GetStringWidth and wrapping logic
-	// fpdf.MultiCell would handle wrapping, but we need height first
+	// Calculate actual wrapped line count using splitTextLines
+	// This ensures box height matches exactly what MultiCell will render
 	textWidth := w - (2 * padding)
-	lineWidth := state.fpdf.GetStringWidth(text)
-	numLines := 1
-	if lineWidth > textWidth {
-		// Estimate wrapped lines (conservative: assume average word length)
-		numLines = int((lineWidth / textWidth)) + 1
-	}
+	lines := splitTextLines(state.fpdf, text, textWidth)
+	numLines := len(lines)
 	
-	// Height = padding + (lines × line height) + padding
-	// Minimum 2 lines to avoid cramped appearance
-	if numLines < 2 {
-		numLines = 2
-	}
 	textHeight := float64(numLines) * pdf.LineHeight
 	h := padding + textHeight + padding
 	
