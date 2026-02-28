@@ -1,56 +1,55 @@
 # markdown2pdf
 
-[![Go Version](https://img.shields.io/github/go-mod/go-version/dlouwers/markdown2pdf)](https://go.dev/)
-[![License](https://img.shields.io/github/license/dlouwers/markdown2pdf)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/dlouwers/markdown2pdf)](https://github.com/dlouwers/markdown2pdf/releases)
+[![CI Status](https://github.com/dlouwers/markdown2pdf/actions/workflows/ci.yml/badge.svg)](https://github.com/dlouwers/markdown2pdf/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dlouwers/markdown2pdf.svg)](https://pkg.go.dev/github.com/dlouwers/markdown2pdf)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dlouwers/markdown2pdf)](https://goreportcard.com/report/github.com/dlouwers/markdown2pdf)
+[![Release](https://img.shields.io/github/v/release/dlouwers/markdown2pdf)](https://github.com/dlouwers/markdown2pdf/releases)
 
-Convert Markdown documents to clean, professional PDFs — with syntax-highlighted code blocks, tables, images, and Mermaid/D2 diagrams.
+A command-line tool that converts Markdown to beautifully formatted PDFs with syntax-highlighted code blocks, tables, diagrams, and professional typography.
 
-## Features
+## What is it?
 
-- **Headings, paragraphs, inline styles** (bold, italic, code, links)
-- **Syntax-highlighted code blocks** via [Chroma](https://github.com/alecthomas/chroma) (200+ languages)
-- **GFM tables** with alignment, borders, and header styling
-- **Ordered, unordered, and task lists** with nested support
-- **Images** — PNG, JPEG, SVG, and base64 data URIs
-- **Mermaid diagrams** — rendered via `mmdc` (mermaid-cli)
-- **D2 diagrams** — rendered natively via the D2 Go library
-- **Table of contents** — optional `--toc` flag with clickable links
-- **Cover pages** — optional `--cover-page` flag generates a professional cover page from YAML frontmatter
-- **Smart inline code wrapping** — long code spans break at safe points (spaces, underscores, dots, slashes) with continuation indicators
+markdown2pdf takes your Markdown documents and generates clean, professional PDFs ready for distribution. Unlike browser-based converters, it's a single static binary with embedded fonts, smart typography, and native support for Mermaid and D2 diagrams. Perfect for documentation, reports, technical specs, and any content that needs to look polished in print.
 
-- **Orphan protection** — headings never appear stranded at the bottom of a page
-- **Noto Sans font** — embedded for full UTF-8 support (override with `--font`)
-- **Symbol font fallback** — embedded Noto Sans Symbols 2 renders glyphs the body font lacks (override with `--symbols-font`)
-- **Emoji font fallback** — embedded Noto Emoji renders pictographic symbols the body and symbols fonts lack (override with `--emoji-font`)
-- **Single static binary** — no runtime dependencies (except `mmdc` for Mermaid)
+## Quick Start
+
+```bash
+# Install via Homebrew
+brew install dlouwers/tap/markdown2pdf
+
+# Convert markdown to PDF
+markdown2pdf document.md
+# → Generates document.pdf
+
+# With cover page and table of contents
+markdown2pdf --cover-page --toc document.md
+```
 
 ## Installation
 
-### Homebrew (macOS and Linux)
+### Package Manager (Recommended)
 
-The easiest way to install on macOS or Linux:
+#### macOS / Linux
 
 ```bash
 brew install dlouwers/tap/markdown2pdf
 ```
 
-### Binary releases
+### Pre-built Binaries
 
-Download prebuilt binaries from [GitHub Releases](https://github.com/dlouwers/markdown2pdf/releases):
+Download from [GitHub Releases](https://github.com/dlouwers/markdown2pdf/releases) — available for macOS (Intel/ARM), Linux (AMD64/ARM64), and Windows (AMD64/ARM64).
 
 <details>
-<summary><b>macOS</b></summary>
+<summary><b>macOS Installation</b></summary>
 
 ```bash
 # Apple Silicon (M1/M2/M3)
-curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_darwin_arm64.tar.gz
+curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/download/v1.2.2/markdown2pdf_1.2.2_darwin_arm64.tar.gz
 tar xzf markdown2pdf.tar.gz
 sudo mv markdown2pdf /usr/local/bin/
 
 # Intel
-curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_darwin_amd64.tar.gz
+curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/download/v1.2.2/markdown2pdf_1.2.2_darwin_amd64.tar.gz
 tar xzf markdown2pdf.tar.gz
 sudo mv markdown2pdf /usr/local/bin/
 ```
@@ -58,16 +57,16 @@ sudo mv markdown2pdf /usr/local/bin/
 </details>
 
 <details>
-<summary><b>Linux</b></summary>
+<summary><b>Linux Installation</b></summary>
 
 ```bash
 # ARM64
-curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_linux_arm64.tar.gz
+curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/download/v1.2.2/markdown2pdf_1.2.2_linux_arm64.tar.gz
 tar xzf markdown2pdf.tar.gz
 sudo mv markdown2pdf /usr/local/bin/
 
 # AMD64/x86_64
-curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/latest/download/markdown2pdf_*_linux_amd64.tar.gz
+curl -Lo markdown2pdf.tar.gz https://github.com/dlouwers/markdown2pdf/releases/download/v1.2.2/markdown2pdf_1.2.2_linux_amd64.tar.gz
 tar xzf markdown2pdf.tar.gz
 sudo mv markdown2pdf /usr/local/bin/
 ```
@@ -75,29 +74,63 @@ sudo mv markdown2pdf /usr/local/bin/
 </details>
 
 <details>
-<summary><b>Windows</b></summary>
+<summary><b>Windows Installation</b></summary>
 
-Download the `.zip` file for your architecture from [releases](https://github.com/dlouwers/markdown2pdf/releases), extract it, and add the binary to your PATH.
+Download the `.zip` file for your architecture from [releases](https://github.com/dlouwers/markdown2pdf/releases/latest), extract it, and add `markdown2pdf.exe` to your PATH.
 
 </details>
 
-### From source
+### From Source
+
+Requires Go 1.25 or later.
 
 ```bash
 go install github.com/dlouwers/markdown2pdf/cmd/markdown2pdf@latest
 ```
 
-Requires Go 1.25 or later.
+## Features
+
+### Document Conversion
+
+- **Headings, paragraphs, inline styles** — bold, italic, code, links
+- **Syntax-highlighted code blocks** — 200+ languages via [Chroma](https://github.com/alecthomas/chroma)
+- **Smart inline code wrapping** — long code spans break at safe points (spaces, underscores, dots, slashes) with continuation indicators
+- **GFM tables** — alignment, borders, header styling, and automatic font scaling for wide tables (8+ columns)
+- **Lists** — ordered, unordered, and task lists with nested support
+- **Images** — PNG, JPEG, SVG, and base64 data URIs
+
+### Advanced Features
+
+- **Professional cover pages** — generated from YAML frontmatter with automatic font scaling for long titles
+- **Table of contents** — optional `--toc` flag creates clickable navigation links
+- **Mermaid diagrams** — flowcharts, sequence diagrams, etc. (requires `mmdc`)
+- **D2 diagrams** — rendered natively, no external dependencies
+- **Orphan protection** — headings never appear stranded at the bottom of a page
+
+### Typography & Fonts
+
+- **Embedded Noto Sans font** — full UTF-8 support out of the box
+- **Smart font fallback cascade** — body font → symbols font → emoji font → text substitution
+- **Custom font support** — override with `--font`, `--symbols-font`, `--emoji-font`
+- **Proportional table spacing** — em-based padding scales with font size for professional appearance
+- **Single static binary** — no runtime dependencies except `mmdc` for Mermaid diagrams
+
 
 ## Usage
 
+### Basic Examples
+
 ```bash
-# Basic conversion (output: document.pdf)
+# Simple conversion (output: document.pdf)
 markdown2pdf document.md
 
 # Specify output path
 markdown2pdf -o output.pdf document.md
+```
 
+### With Advanced Features
+
+```bash
 # Generate with table of contents
 markdown2pdf --toc document.md
 
@@ -106,11 +139,11 @@ markdown2pdf --cover-page document.md
 
 # Combine cover page with table of contents
 markdown2pdf --cover-page --toc document.md
+```
 
+### Custom Fonts
 
-# Print version
-markdown2pdf --version
-
+```bash
 # Use a custom body font (zip or tar.gz with TTF files)
 markdown2pdf --font /path/to/MyFont.zip document.md
 
@@ -121,14 +154,26 @@ markdown2pdf --symbols-font /path/to/Symbols.tar.gz document.md
 markdown2pdf --emoji-font /path/to/Emoji.tar.gz document.md
 ```
 
+### Other Options
+
+```bash
+# Print version
+markdown2pdf --version
+
+# View all options
+markdown2pdf --help
+```
+
 
 ## Cover Pages
 
 Generate professional cover pages from YAML frontmatter metadata. When the `--cover-page` flag is used, markdown2pdf extracts metadata from the frontmatter block and renders it on a dedicated first page.
 
+**Smart font scaling**: Titles that wrap to 3+ lines automatically reduce font size (90% at 3 lines, 80% at 4+ lines) to maintain professional proportions.
+
 ### Frontmatter Format
 
-Add a YAML block at the start of your markdown file (delimited by `---`):
+Add a YAML block at the start of your markdown file:
 
 ```yaml
 ---
@@ -140,32 +185,44 @@ version: 1.0.0
 ---
 ```
 
-**Supported fields:**
-- `title` (required for cover page): Large, bold, centered at top
-- `subtitle` (optional): Italic, below title
-- `author` (optional): Centered in middle section
-- `date` (optional): Centered below author
-- `version` (optional): Displayed as "Version X.Y.Z"
+### Supported Fields
 
-All fields except `title` are optional. If `--cover-page` is specified but no frontmatter exists or title is missing, no cover page is generated.
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | Yes* | Large, bold, centered at top |
+| `subtitle` | No | Italic, below title |
+| `author` | No | Centered in middle section |
+| `date` | No | Centered below author |
+| `version` | No | Displayed as "Version X.Y.Z" |
 
+*Required only if `--cover-page` flag is used. If title is missing, no cover page is generated.
 ## Fonts
 
-**Body font**: [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) is embedded by default for full UTF-8 coverage. Override with `--font` pointing to a zip or tar.gz archive containing TTF files (Regular, Bold, Italic, BoldItalic variants are auto-detected by filename).
+markdown2pdf uses a **four-tier font cascade** to handle all characters, from basic text to complex emoji:
 
-**Symbols fallback**: [Noto Sans Symbols 2](https://fonts.google.com/noto/specimen/Noto+Sans+Symbols+2) is embedded as the default fallback. When the body font lacks a glyph, the symbols font is tried automatically. Override with `--symbols-font`.
+1. **Body font**: [Noto Sans](https://fonts.google.com/noto/specimen/Noto+Sans) (embedded, full UTF-8 coverage)
+   - Override: `--font /path/to/font.zip`
+   - Archive should contain TTF files: Regular, Bold, Italic, BoldItalic (auto-detected by filename)
 
-**Emoji fallback**: [Noto Emoji](https://fonts.google.com/noto/specimen/Noto+Emoji) is embedded as the third-tier fallback. When both the body and symbols fonts lack a glyph, the emoji font is tried. Override with `--emoji-font`.
+2. **Symbols fallback**: [Noto Sans Symbols 2](https://fonts.google.com/noto/specimen/Noto+Sans+Symbols+2) (embedded)
+   - Renders glyphs the body font lacks (mathematical symbols, arrows, geometric shapes)
+   - Override: `--symbols-font /path/to/symbols.tar.gz`
 
-**Text substitution**: Glyphs that no embedded font supports (e.g. SMP emoji like 🚀) are replaced with ASCII equivalents (e.g. `[>]`).
+3. **Emoji fallback**: [Noto Emoji](https://fonts.google.com/noto/specimen/Noto+Emoji) (embedded)
+   - Renders pictographic symbols as black & white
+   - Top 100 common emoji use **Twemoji** color graphics (PNG format)
+   - Override: `--emoji-font /path/to/emoji.tar.gz`
 
-The full cascade: **body font → symbols font → emoji font → text substitution**.
+4. **Text substitution**: Glyphs unsupported by all fonts → ASCII equivalents (e.g. 🚀 → `[>]`)
 
-## Diagram support
+**Full cascade**: body font → symbols font → emoji font → text substitution
+## Diagrams
 
 ### Mermaid
 
-Fenced code blocks tagged with `mermaid` are rendered to PNG via [mermaid-cli](https://github.com/mermaid-js/mermaid-cli). Install it with:
+Fenced code blocks tagged with `mermaid` are rendered to PNG via [mermaid-cli](https://github.com/mermaid-js/mermaid-cli).
+
+**Installation:**
 
 ```bash
 npm install -g @mermaid-js/mermaid-cli
@@ -175,59 +232,42 @@ If `mmdc` is not available, Mermaid blocks render as a placeholder with the raw 
 
 ### D2
 
-Fenced code blocks tagged with `d2` are rendered natively using the [D2 Go library](https://github.com/terrastruct/d2) — no external tools required.
+Fenced code blocks tagged with `d2` are rendered natively using the [D2 Go library](https://github.com/terrastruct/d2) — **no external tools required**.
 
-### Browser detection
+### Browser Detection
 
-Diagram rendering uses a headless Chromium-based browser. The following browsers are auto-detected (in order):
+Diagram rendering uses a headless Chromium-based browser for rasterization. Auto-detected in order:
 
 1. `CHROME_PATH` environment variable (if set)
 2. Brave Browser
 3. Google Chrome
 4. Chromium
 5. Microsoft Edge
+## Examples
 
-## Building
+The [`testdata/`](testdata/) directory contains comprehensive examples demonstrating all features:
 
-The project uses a DevContainer with all required tooling pre-installed:
+- **Cover pages**: [`cover-page.md`](testdata/cover-page.md), [`cover-three-line-title.md`](testdata/cover-three-line-title.md) (font scaling demo)
+- **Tables**: [`tables.md`](testdata/tables.md), [`table-8col.md`](testdata/table-8col.md) (proportional spacing demo)
+- **Diagrams**: [`diagrams.md`](testdata/diagrams.md) (Mermaid + D2)
+- **Code blocks**: [`code_blocks.md`](testdata/code_blocks.md), [`inline-code-wrapping.md`](testdata/inline-code-wrapping.md)
+- **Images**: [`images.md`](testdata/images.md)
+- **Emoji**: [`emoji-color.md`](testdata/emoji-color.md)
 
-```bash
-# Build
-go build -o markdown2pdf ./cmd/markdown2pdf
-
-# Test
-go test ./... -count=1
-
-# Lint
-golangci-lint run --timeout=5m ./...
-
-# Static binary (no CGO)
-CGO_ENABLED=0 go build -trimpath -o markdown2pdf ./cmd/markdown2pdf
-```
-
-## Releasing
-
-Releases are automated with [GoReleaser](https://goreleaser.com/). Push a semver tag to create a release:
+Each example includes a generated PDF showing the output. Generate them yourself:
 
 ```bash
-git tag v0.0.1
-git push --tags
+# Generate all examples
+for f in testdata/*.md; do markdown2pdf "$f"; done
 ```
+## Contributing
 
-This builds binaries for:
-- macOS (amd64, arm64)
-- Linux (amd64, arm64)
-- Windows (amd64)
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for build instructions, development workflow, and release process.
+## Credits
 
-## Emoji Support
-
-Color emoji are rendered using **Twemoji** graphics (PNG format) for the top 100 most common emoji. Emoji outside this set fall back to the Noto Emoji font (black & white).
-
-Graphics: Copyright 2020 Twitter, Inc and other contributors. Licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)  
-Code: Licensed under the MIT License
+**Twemoji graphics** (top 100 emoji): Copyright 2020 Twitter, Inc and other contributors  
+Licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ## License
 
-See [LICENSE](LICENSE) for details.
-
-See [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
