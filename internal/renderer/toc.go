@@ -142,19 +142,28 @@ func renderTOC(state *renderState, entries []tocEntry) {
 		}
 
 		// Calculate space for leader dots.
-		availableWidth := contentWidth - indent - pnumWidth
-		dotsWidth := availableWidth - titleWidth - (0.5 * pdf.FontSizeBody / 11.0) // 0.5em gap after title
-
+		// Current X position is: left + indent + titleWidth
+		// Page number box starts at: left + contentWidth - pnumWidth
+		// Dots should fill the gap between title end and page number box start
+		const gap = 0.5 * pdf.FontSizeBody / 11.0 // 0.5em gap after title
+		dotsStartX := state.fpdf.GetX() + gap
+		pageNumStartX := left + contentWidth - pnumWidth
+		dotsWidth := pageNumStartX - dotsStartX
 		// Render leader dots if space allows.
 		if dotsWidth > dotSpacing*2 {
 			state.fpdf.SetFont(pdf.FontBody, "", fontSize)
+			// Position cursor at start of dots area (after gap)
+			state.fpdf.SetX(dotsStartX)
 			numDots := int(dotsWidth / dotSpacing)
 			dots := ""
 			for j := 0; j < numDots; j++ {
 				dots += "."
 			}
-			// Use CellFormat to position dots without advancing Y
-			state.fpdf.CellFormat(dotsWidth, pdf.LineHeight, dots, "", 0, "R", false, 0, "")
+			// Render dots filling the available width, left-aligned within the cell
+			state.fpdf.CellFormat(dotsWidth, pdf.LineHeight, dots, "", 0, "L", false, 0, "")
+		} else {
+			// Not enough space for dots, just position cursor before page number box
+			state.fpdf.SetX(pageNumStartX)
 		}
 
 		// Render page number alias (will be replaced with actual number during PDF close).
