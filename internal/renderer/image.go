@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-pdf/fpdf"
 	"github.com/srwiley/oksvg"
@@ -21,6 +24,20 @@ import (
 // imageCounter is used to generate unique names for in-memory images.
 var imageCounter int
 
+// httpClient is used for fetching remote images with timeout.
+var httpClient = &http.Client{
+	Timeout: 30 * time.Second,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return fmt.Errorf("too many redirects")
+		}
+		return nil
+	},
+}
+
+// imageCache stores fetched remote images to avoid duplicate downloads.
+var imageCache = make(map[string][]byte)
+
 func renderImage(state *renderState, img *ast.Image, source []byte) {
 	dest := string(img.Destination)
 	if dest == "" {
@@ -31,6 +48,8 @@ func renderImage(state *renderState, img *ast.Image, source []byte) {
 
 	if strings.HasPrefix(dest, "data:") {
 		renderDataURIImage(state, dest)
+	} else if isHTTPURL(dest) {
+		renderURLImage(state, dest)
 	} else if isSVGPath(dest) {
 		renderSVGImage(state, dest)
 	} else {
@@ -65,6 +84,68 @@ func renderFileImage(state *renderState, path string) {
 	}
 
 	embedImage(state, resolvedPath, infoPtr)
+}
+
+// renderURLImage fetches an image from HTTP/HTTPS URL and embeds it.
+func renderURLImage(state *renderState, url string) {
+	// Check cache first to avoid duplicate downloads
+	if cachedData, ok := imageCache[url]; ok {
+		embedURLImageBytes(state, cachedData, url)
+		return
+	}
+
+	// Fetch image from URL
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		renderImagePlaceholder(state, url, fmt.Sprintf("fetch error: %v", err))
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		renderImagePlaceholder(state, url, fmt.Sprintf("HTTP %d", resp.StatusCode))
+		return
+	}
+
+	// Read response body
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		renderImagePlaceholder(state, url, fmt.Sprintf("read error: %v", err))
+		return
+	}
+
+	// Cache for future use
+	imageCache[url] = data
+
+	embedURLImageBytes(state, data, url)
+}
+
+// embedURLImageBytes determines format and embeds URL image data.
+func embedURLImageBytes(state *renderState, data []byte, url string) {
+	// Try to detect format from data (SVG needs special handling)
+	if isSVGData(data) {
+		pngData, err := rasterizeSVG(data, pdf.SVGRenderScale)
+		if err != nil {
+			renderImagePlaceholder(state, url, fmt.Sprintf("SVG render error: %v", err))
+			return
+		}
+		embedPNGBytes(state, pngData, url)
+		return
+	}
+
+	// Detect image type from data signature
+	imgType := detectImageTypeFromData(data)
+	if imgType == "" {
+		// Try from URL extension as fallback
+		imgType = detectImageType(url)
+	}
+
+	if imgType == "" {
+		renderImagePlaceholder(state, url, "unsupported format")
+		return
+	}
+
+	embedImageBytes(state, data, imgType, url)
 }
 
 // renderSVGImage rasterizes an SVG file and embeds it as PNG.
@@ -351,6 +432,46 @@ func detectImageType(path string) string {
 	default:
 		return ""
 	}
+}
+
+// isHTTPURL returns true if the path is an HTTP or HTTPS URL.
+func isHTTPURL(path string) bool {
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+}
+
+// isSVGData returns true if data appears to be SVG content.
+func isSVGData(data []byte) bool {
+	// Check for SVG opening tag in first 512 bytes
+	preview := data
+	if len(data) > 512 {
+		preview = data[:512]
+	}
+	lower := strings.ToLower(string(preview))
+	return strings.Contains(lower, "<svg") || strings.Contains(lower, "<?xml")
+}
+
+// detectImageTypeFromData detects image format from data signature (magic bytes).
+func detectImageTypeFromData(data []byte) string {
+	if len(data) < 12 {
+		return ""
+	}
+
+	// PNG: \x89PNG
+	if len(data) >= 4 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47 {
+		return "PNG"
+	}
+
+	// JPEG: \xFF\xD8\xFF
+	if len(data) >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF {
+		return "JPEG"
+	}
+
+	// GIF: GIF87a or GIF89a
+	if len(data) >= 6 && string(data[0:3]) == "GIF" {
+		return "GIF"
+	}
+
+	return ""
 }
 
 // isSVGPath returns true if the path has an .svg extension.
