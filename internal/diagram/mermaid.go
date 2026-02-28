@@ -39,15 +39,17 @@ func RenderMermaid(source string) ([]byte, error) {
 	}
 
 	// Puppeteer config for container compatibility (headless Chrome sandbox).
+	// Use system Chromium if available instead of downloading Chrome.
 	puppeteerCfg := `{
-  "headless": "shell",
-  "args": [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu"
-  ]
-}`
+	  "executablePath": "/usr/bin/chromium",
+	  "headless": "shell",
+	  "args": [
+	    "--no-sandbox",
+	    "--disable-setuid-sandbox",
+	    "--disable-dev-shm-usage",
+	    "--disable-gpu"
+	  ]
+	}`
 	if err := os.WriteFile(puppeteerConfig, []byte(puppeteerCfg), 0o644); err != nil {
 		return nil, fmt.Errorf("write puppeteer config: %w", err)
 	}
