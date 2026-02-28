@@ -7,7 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-02-28
+
 ### Added
+- **HTTP/HTTPS image support** ([#22](https://github.com/dlouwers/markdown2pdf/issues/22), [#23](https://github.com/dlouwers/markdown2pdf/pull/23))
+  - Fetch and embed images from remote URLs (PNG, JPEG, GIF, SVG)
+  - In-memory caching to prevent duplicate downloads
+  - Automatic format detection via magic bytes and Content-Type headers
+  - Error placeholders for network failures with descriptive messages
+  - 30-second timeout with redirect following (max 10 redirects)
+
+### Fixed
+- Image placeholder boxes now use dynamic height with text wrapping (LaTeX minipage pattern)
+  - Long error messages no longer overflow fixed-height boxes
+  - 1.5mm padding (LaTeX \fboxsep standard)
+  - Minimum 2-line height for readability
+
+### Improved
+- Image placeholder font size reduced to 9pt (matching LaTeX 8-10pt convention)
+- Test fixture for HTTP/HTTPS image support with error handling examples
+
+## [1.3.0] - 2024-02-27
+
+### Added
+- **Cover page font scaling** for long titles ([#17](https://github.com/dlouwers/markdown2pdf/issues/17), [#20](https://github.com/dlouwers/markdown2pdf/pull/20))
+  - Titles wrapping to 3+ lines automatically reduce font size
+  - 90% scaling at 3 lines, 80% at 4+ lines for professional proportions
+  - Prevents cramped or overflowing cover pages
+- **Table proportional spacing and font scaling** ([#19](https://github.com/dlouwers/markdown2pdf/issues/19), [#21](https://github.com/dlouwers/markdown2pdf/pull/21))
+  - Em-based padding (0.5em) scales with font size
+  - Automatic font reduction for wide tables (6+ columns: 90%, 8+ columns: 80%)
+  - Follows LaTeX and CSS best practices for table typography
 - Comprehensive README refactoring with improved structure and examples
 - CONTRIBUTING.md with detailed development workflow and release process
 - CHANGELOG.md to track project history
@@ -151,7 +181,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD with GitHub Actions
 - Cross-platform releases (macOS, Linux, Windows; AMD64, ARM64)
 
-[Unreleased]: https://github.com/dlouwers/markdown2pdf/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/dlouwers/markdown2pdf/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/dlouwers/markdown2pdf/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/dlouwers/markdown2pdf/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/dlouwers/markdown2pdf/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/dlouwers/markdown2pdf/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/dlouwers/markdown2pdf/compare/v1.1.0...v1.2.0
