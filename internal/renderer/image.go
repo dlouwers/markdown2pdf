@@ -388,39 +388,47 @@ func contentWidth(state *renderState) float64 {
 }
 
 // renderImagePlaceholder draws a labeled box when an image can't be rendered.
+// Follows the LaTeX \fbox{\parbox{w}{content}} pattern: the box wraps tightly
+// around the text with \fboxsep padding, and the parbox width equals the exact
+// text width (no hidden cell margins).
 func renderImagePlaceholder(state *renderState, label, reason string) {
 	left, _, _, _ := state.fpdf.GetMargins()
 	y := state.fpdf.GetY()
 	w := contentWidth(state)
-	
-	// LaTeX-style placeholder: content-driven height with wrapping
-	// Following LaTeX \fboxsep (3pt ≈ 1.5mm) and minipage pattern
-	const padding = 1.5 // LaTeX \fboxsep ≈ 3pt
+
+	// LaTeX \fboxsep (3pt ≈ 1.5mm) — padding between box border and text.
+	const padding = 1.5
 	fontSize := pdf.FontSizeBody - 2
-	
-	// Set font for measurement and rendering
+
+	// Set font for measurement and rendering.
 	state.fpdf.SetFont(pdf.FontBody, "I", fontSize)
 	state.fpdf.SetTextColor(150, 150, 150)
-	text := fmt.Sprintf("[Image: %s — %s]", label, reason)
-	
-	// Calculate actual wrapped line count using splitTextLines
-	// This ensures box height matches exactly what MultiCell will render
+	text := fmt.Sprintf("[Image: %s \u2014 %s]", label, reason)
+
+	// LaTeX \parbox{w}{content}: the width parameter is the exact text area.
+	// fpdf MultiCell subtracts 2*cMargin internally, so we zero it out to
+	// ensure our measurement and MultiCell's wrapping agree on the same width.
 	textWidth := w - (2 * padding)
-	lines := splitTextLines(state.fpdf, text, textWidth)
-	numLines := len(lines)
-	
+	savedCellMargin := state.fpdf.GetCellMargin()
+	state.fpdf.SetCellMargin(0)
+
+	// Measure height using fpdf's own SplitText (same algorithm as MultiCell)
+	// so the box height matches exactly what MultiCell will render.
+	numLines := len(state.fpdf.SplitText(text, textWidth))
 	textHeight := float64(numLines) * pdf.LineHeight
 	h := padding + textHeight + padding
-	
-	// Draw placeholder box
+
+	// Draw placeholder box.
 	state.fpdf.SetDrawColor(200, 200, 200)
 	state.fpdf.SetFillColor(250, 250, 250)
 	state.fpdf.Rect(left, y, w, h, "FD")
-	
-	// Render text with MultiCell for proper wrapping
+
+	// Render text with MultiCell for proper wrapping.
 	state.fpdf.SetXY(left+padding, y+padding)
 	state.fpdf.MultiCell(textWidth, pdf.LineHeight, text, "", "L", false)
-	
+
+	// Restore cell margin and position.
+	state.fpdf.SetCellMargin(savedCellMargin)
 	state.fpdf.SetXY(left, y+h)
 	resetFont(state)
 }
