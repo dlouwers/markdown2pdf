@@ -59,15 +59,19 @@ func renderTOC(state *renderState, entries []tocEntry) {
 	state.fpdf.MultiCell(0, pdf.LineHeight+1, "Table of Contents", "", "", false)
 	state.fpdf.Ln(6) // LaTeX: ~2-3em before first entry
 
-	// LaTeX standard measurements (converted from em to points).
+	// Point-to-mm conversion: 1pt = 25.4mm / 72 ≈ 0.3528mm.
+	// 1em at body font size = FontSizeBody * ptToMM.
+	const ptToMM = 25.4 / 72.0
+	const em = pdf.FontSizeBody * ptToMM // 1em in mm at body font size
+
+	// LaTeX standard measurements (converted from em to mm).
 	const (
-		pnumWidth   = 1.55 * pdf.FontSizeBody / 11.0 // 1.55em for page numbers
-		dotSpacing  = 0.5 * pdf.FontSizeBody / 11.0  // 0.5em between dot centers
-		indentH1    = 0.0                             // No indent for top-level
-		indentH2    = 1.5 * pdf.FontSizeBody / 11.0  // 1.5em
-		indentH3    = 3.8 * pdf.FontSizeBody / 11.0  // 3.8em
-		indentH4    = 7.0 * pdf.FontSizeBody / 11.0  // 7.0em
-		indentOther = 10.0 * pdf.FontSizeBody / 11.0 // 10em for H5+
+		pnumWidth   = 1.55 * em  // LaTeX \@pnumwidth = 1.55em
+		indentH1    = 0.0        // No indent for top-level
+		indentH2    = 1.5 * em   // LaTeX standard section indent
+		indentH3    = 3.8 * em   // LaTeX standard subsection indent
+		indentH4    = 7.0 * em   // LaTeX standard subsubsection indent
+		indentOther = 10.0 * em  // Deep nesting
 	)
 
 	left, _, right, _ := state.fpdf.GetMargins()
@@ -77,7 +81,7 @@ func renderTOC(state *renderState, entries []tocEntry) {
 	for i, entry := range entries {
 		// LaTeX vertical spacing: 1em before top-level sections (except very first).
 		if i > 0 && entry.level == 1 {
-			state.fpdf.Ln(pdf.FontSizeBody / 11.0 * 1.0) // 1em
+			state.fpdf.Ln(1.0 * em) // 1em vertical spacing
 		}
 
 		// Calculate indent based on heading level (LaTeX standard).
@@ -141,50 +145,53 @@ func renderTOC(state *renderState, entries []tocEntry) {
 			state.fpdf.WriteLinkID(pdf.LineHeight, seg.Text, entry.linkID)
 		}
 
-		// Calculate space for leader dots.
-		// Current X position is: left + indent + titleWidth
-		// Page number box starts at: left + contentWidth - pnumWidth
-		// Dots should fill the gap between title end and page number box start
-		const gap = 0.5 * pdf.FontSizeBody / 11.0 // 0.5em gap after title
-		dotsStartX := state.fpdf.GetX() + gap
-		pageNumStartX := left + contentWidth - pnumWidth
-		dotsWidth := pageNumStartX - dotsStartX
-		// Render leader dots if space allows.
-		if dotsWidth > dotSpacing*2 {
-			state.fpdf.SetFont(pdf.FontBody, "", fontSize)
-			// Position cursor at start of dots area (after gap)
-			state.fpdf.SetX(dotsStartX)
-			
-			// Build dots string that fits exactly in available width
-			dotWidth := state.fpdf.GetStringWidth(".")
-			numDots := int(dotsWidth / dotWidth)
-			dots := ""
-			for j := 0; j < numDots; j++ {
-				dots += "."
+		// Leader dots and page number layout.
+		// Layout:  |<indent>|<title>|<gap>|<dots...>|<gap>|<page number>|
+		const gap = 0.5 * em // 0.5em gap around dots
+		// LaTeX \@dotsep = 4.5mu; leader box = kern(4.5mu) + "." + kern(4.5mu)
+		// Center-to-center spacing ≈ 0.77em gives visually distinct dots.
+		const dotSpacing = 0.77 * em
+
+		// Page number positioning: use Text() for exact placement.
+		// The alias (e.g. "{toc:0}") is wider than the final page number,
+		// so we compute positions based on the alias width to ensure dots
+		// never overlap. After RegisterAlias replacement, the shorter page
+		// number will appear right-padded within the same space.
+		state.fpdf.SetFont(pdf.FontBody, "", fontSize)
+		aliasWidth := state.fpdf.GetStringWidth(entry.pageAlias)
+		// Use the wider of pnumWidth and aliasWidth to reserve enough space.
+		reservedWidth := pnumWidth
+		if aliasWidth > reservedWidth {
+			reservedWidth = aliasWidth
+		}
+		pageNumX := left + contentWidth - reservedWidth // left edge of reserved space
+		dotsStartX := left + indent + titleWidth + gap
+		dotsEndX := pageNumX - gap
+
+		// Baseline Y for Text(): CellFormat (used by WriteLinkID) places text at
+		// y + 0.5*h + 0.3*fontSize_mm. Text() uses y as the baseline directly.
+		// Match CellFormat's baseline so dots align with the title text.
+		baselineY := y + 0.5*pdf.LineHeight + 0.3*(fontSize*ptToMM)
+
+		// Render leader dots at evenly-spaced absolute positions.
+		if dotsEndX-dotsStartX > dotSpacing*2 {
+			dotCharWidth := state.fpdf.GetStringWidth(".")
+			x := dotsStartX
+			for x+dotCharWidth <= dotsEndX {
+				state.fpdf.Text(x, baselineY, ".")
+				x += dotSpacing
 			}
-			
-			// Render dots, but constrain to exact dotsWidth to prevent overflow
-			actualDotsWidth := state.fpdf.GetStringWidth(dots)
-			if actualDotsWidth > dotsWidth {
-				// Dots string is too wide, truncate by removing dots
-				for actualDotsWidth > dotsWidth && len(dots) > 0 {
-					dots = dots[:len(dots)-1]
-					actualDotsWidth = state.fpdf.GetStringWidth(dots)
-				}
-			}
-			// Render dots within the exact width (prevent overflow)
-			state.fpdf.CellFormat(dotsWidth, pdf.LineHeight, dots, "", 0, "L", false, 0, "")
-		} else {
-			// Not enough space for dots, just position cursor before page number box
-			state.fpdf.SetX(pageNumStartX)
 		}
 
-		// Render page number alias (will be replaced with actual number during PDF close).
-		state.fpdf.SetFont(pdf.FontBody, "", fontSize)
-		// Position cursor at exact page number box location
-		state.fpdf.SetX(pageNumStartX)
-		state.fpdf.CellFormat(pnumWidth, pdf.LineHeight, entry.pageAlias, "", 0, "R", false, 0, "")
+		// Render page number alias at fixed position using Text().
+		// RegisterAlias replaces the alias with the real page number at
+		// PDF output time. Text() places at exact coordinates without
+		// creating a cell, avoiding width/overflow issues.
+		state.fpdf.Text(pageNumX, baselineY, entry.pageAlias)
 
+		// Advance to next line. Text() doesn't move the cursor, so reset Y
+		// to the title line's Y before advancing.
+		state.fpdf.SetY(y)
 		state.fpdf.Ln(pdf.LineHeight + 1)
 		state.fpdf.SetTextColor(pdf.ColorText.R, pdf.ColorText.G, pdf.ColorText.B)
 	}
