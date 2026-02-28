@@ -1,6 +1,8 @@
 package renderer
 
 import (
+	"fmt"
+
 	"github.com/yuin/goldmark/ast"
 
 	"github.com/dlouwers/markdown2pdf/internal/pdf"
@@ -8,9 +10,10 @@ import (
 
 // tocEntry represents a heading collected for the table of contents.
 type tocEntry struct {
-	text   string
-	level  int
-	linkID int // fpdf internal link ID pointing to the heading destination
+	text      string
+	level     int
+	linkID    int    // fpdf internal link ID pointing to the heading destination
+	pageAlias string // Placeholder alias for page number (e.g., "{toc:0}")
 }
 
 // collectTOCEntries walks the AST and extracts headings, creating an
@@ -26,37 +29,73 @@ func collectTOCEntries(node ast.Node, source []byte, state *renderState) []tocEn
 			return ast.WalkContinue, nil
 		}
 		linkID := state.fpdf.AddLink()
+		pageAlias := fmt.Sprintf("{toc:%d}", len(entries))
 		entries = append(entries, tocEntry{
-			text:   pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(heading, source)),
-			level:  heading.Level,
-			linkID: linkID,
+			text:      pdf.SubstituteUnsupportedGlyphs(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), collectInlineText(heading, source)),
+			level:     heading.Level,
+			linkID:    linkID,
+			pageAlias: pageAlias,
 		})
 		return ast.WalkContinue, nil
 	})
 	return entries
 }
 
-// renderTOC renders a table of contents page with clickable entries that
-// link to the corresponding headings in the document.
+// renderTOC renders a LaTeX-style table of contents page with page numbers,
+// leader dots, and proper hierarchical formatting.
 func renderTOC(state *renderState, entries []tocEntry) {
-	// Store link IDs so renderHeading can set destinations.
+	// Store link IDs and aliases for page number registration during content rendering.
 	linkIDs := make([]int, len(entries))
-	for i, e := range entries {
-		linkIDs[i] = e.linkID
+	pageAliases := make([]string, len(entries))
+	for i := range entries {
+		linkIDs[i] = entries[i].linkID
+		pageAliases[i] = entries[i].pageAlias
 	}
 	state.tocLinks = linkIDs
+	state.tocPageAliases = pageAliases
 
-	// TOC title.
+	// TOC title with LaTeX spacing.
 	state.fpdf.SetFont(pdf.FontBody, "B", pdf.FontSizeH2)
 	state.fpdf.MultiCell(0, pdf.LineHeight+1, "Table of Contents", "", "", false)
-	state.fpdf.Ln(4)
+	state.fpdf.Ln(6) // LaTeX: ~2-3em before first entry
 
-	for _, entry := range entries {
-		indent := float64(entry.level-1) * 6.0 // indent sub-headings
-		left, _, _, _ := state.fpdf.GetMargins()
-		state.fpdf.SetX(left + indent)
+	// LaTeX standard measurements (converted from em to points).
+	const (
+		pnumWidth   = 1.55 * pdf.FontSizeBody / 11.0 // 1.55em for page numbers
+		dotSpacing  = 0.5 * pdf.FontSizeBody / 11.0  // 0.5em between dot centers
+		indentH1    = 0.0                             // No indent for top-level
+		indentH2    = 1.5 * pdf.FontSizeBody / 11.0  // 1.5em
+		indentH3    = 3.8 * pdf.FontSizeBody / 11.0  // 3.8em
+		indentH4    = 7.0 * pdf.FontSizeBody / 11.0  // 7.0em
+		indentOther = 10.0 * pdf.FontSizeBody / 11.0 // 10em for H5+
+	)
 
-		// Size: H1/H2 entries use body size; deeper headings slightly smaller.
+	left, _, right, _ := state.fpdf.GetMargins()
+	pageWidth, _ := state.fpdf.GetPageSize()
+	contentWidth := pageWidth - left - right
+
+	for i, entry := range entries {
+		// LaTeX vertical spacing: 1em before top-level sections (except very first).
+		if i > 0 && entry.level == 1 {
+			state.fpdf.Ln(pdf.FontSizeBody / 11.0 * 1.0) // 1em
+		}
+
+		// Calculate indent based on heading level (LaTeX standard).
+		var indent float64
+		switch entry.level {
+		case 1:
+			indent = indentH1
+		case 2:
+			indent = indentH2
+		case 3:
+			indent = indentH3
+		case 4:
+			indent = indentH4
+		default:
+			indent = indentOther
+		}
+
+		// Font styling: bold for H1-H2, regular for deeper levels.
 		fontSize := pdf.FontSizeBody
 		fontStyle := ""
 		if entry.level <= 2 {
@@ -66,10 +105,30 @@ func renderTOC(state *renderState, entries []tocEntry) {
 			fontSize = pdf.FontSizeBody - 1
 		}
 
-		state.fpdf.SetTextColor(pdf.ColorLink.R, pdf.ColorLink.G, pdf.ColorLink.B)
+		// Set position at left margin + indent.
+		state.fpdf.SetX(left + indent)
+		y := state.fpdf.GetY()
 
-		// Render TOC entry with font-segment awareness for symbols.
+		// Render entry text with font-segment awareness.
 		segments := pdf.SegmentText(state.doc.BodyFontBytes(), state.doc.SymbolsFontBytes(), state.doc.EmojiFontBytes(), entry.text)
+		state.fpdf.SetTextColor(pdf.ColorText.R, pdf.ColorText.G, pdf.ColorText.B)
+
+		// Calculate title width.
+		var titleWidth float64
+		for _, seg := range segments {
+			switch seg.Kind {
+			case pdf.FontKindSymbols:
+				state.fpdf.SetFont(pdf.FontSymbols, fontStyle, fontSize)
+			case pdf.FontKindEmoji:
+				state.fpdf.SetFont(pdf.FontEmoji, fontStyle, fontSize)
+			default:
+				state.fpdf.SetFont(pdf.FontBody, fontStyle, fontSize)
+			}
+			titleWidth += state.fpdf.GetStringWidth(seg.Text)
+		}
+
+		// Render title as clickable link.
+		state.fpdf.SetXY(left+indent, y)
 		for _, seg := range segments {
 			switch seg.Kind {
 			case pdf.FontKindSymbols:
@@ -81,6 +140,26 @@ func renderTOC(state *renderState, entries []tocEntry) {
 			}
 			state.fpdf.WriteLinkID(pdf.LineHeight, seg.Text, entry.linkID)
 		}
+
+		// Calculate space for leader dots.
+		availableWidth := contentWidth - indent - pnumWidth
+		dotsWidth := availableWidth - titleWidth - (0.5 * pdf.FontSizeBody / 11.0) // 0.5em gap after title
+
+		// Render leader dots if space allows.
+		if dotsWidth > dotSpacing*2 {
+			state.fpdf.SetFont(pdf.FontBody, "", fontSize)
+			numDots := int(dotsWidth / dotSpacing)
+			dots := ""
+			for j := 0; j < numDots; j++ {
+				dots += "."
+			}
+			// Use CellFormat to position dots without advancing Y
+			state.fpdf.CellFormat(dotsWidth, pdf.LineHeight, dots, "", 0, "R", false, 0, "")
+		}
+
+		// Render page number alias (will be replaced with actual number during PDF close).
+		state.fpdf.SetFont(pdf.FontBody, "", fontSize)
+		state.fpdf.CellFormat(pnumWidth, pdf.LineHeight, entry.pageAlias, "", 0, "R", false, 0, "")
 
 		state.fpdf.Ln(pdf.LineHeight + 1)
 		state.fpdf.SetTextColor(pdf.ColorText.R, pdf.ColorText.G, pdf.ColorText.B)

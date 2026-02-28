@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/go-pdf/fpdf"
@@ -12,12 +13,13 @@ import (
 )
 
 type renderState struct {
-	doc        *pdf.Document
-	fpdf       *fpdf.Fpdf
-	style      textStyle
-	stack      []textStyle
-	tocLinks   []int // link IDs for TOC; consumed in heading order
-	tocLinkIdx int   // next index into tocLinks
+	doc              *pdf.Document
+	fpdf             *fpdf.Fpdf
+	style            textStyle
+	stack            []textStyle
+	tocLinks         []int      // link IDs for TOC; consumed in heading order
+	tocLinkIdx       int        // next index into tocLinks
+	tocPageAliases   []string   // Page number aliases for TOC (e.g., "{toc:0}")
 }
 
 type textStyle struct {
@@ -172,9 +174,14 @@ func renderHeading(state *renderState, heading *ast.Heading, source []byte) {
 		}
 	}
 
-	// Set TOC link destination at the heading position.
+	// Set TOC link destination and register page number alias.
 	if state.tocLinkIdx < len(state.tocLinks) {
 		state.fpdf.SetLink(state.tocLinks[state.tocLinkIdx], state.fpdf.GetY(), -1)
+		// Register alias with actual page number
+		if state.tocLinkIdx < len(state.tocPageAliases) {
+			pageNum := state.fpdf.PageNo()
+			state.fpdf.RegisterAlias(state.tocPageAliases[state.tocLinkIdx], fmt.Sprintf("%d", pageNum))
+		}
 		state.tocLinkIdx++
 	}
 
