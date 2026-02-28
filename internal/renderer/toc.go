@@ -168,6 +168,8 @@ func renderTOC(state *renderState, entries []tocEntry) {
 
 		// Render page number alias (will be replaced with actual number during PDF close).
 		state.fpdf.SetFont(pdf.FontBody, "", fontSize)
+		// Position cursor at exact page number box location
+		state.fpdf.SetX(pageNumStartX)
 		state.fpdf.CellFormat(pnumWidth, pdf.LineHeight, entry.pageAlias, "", 0, "R", false, 0, "")
 
 		state.fpdf.Ln(pdf.LineHeight + 1)
