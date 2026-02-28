@@ -12,7 +12,7 @@ Remote PNG image (Go gopher logo):
 
 Remote JPEG image (placeholder):
 
-![JPEG Image](https://via.placeholder.com/400x300.jpg)
+![JPEG Image](https://picsum.photos/400/300.jpg)
 
 ## SVG from URL
 

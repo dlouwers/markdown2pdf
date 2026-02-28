@@ -392,18 +392,44 @@ func renderImagePlaceholder(state *renderState, label, reason string) {
 	left, _, _, _ := state.fpdf.GetMargins()
 	y := state.fpdf.GetY()
 	w := contentWidth(state)
-	h := pdf.LineHeight * 3
-
+	
+	// LaTeX-style placeholder: content-driven height with wrapping
+	// Following LaTeX \fboxsep (3pt ≈ 1.5mm) and minipage pattern
+	const padding = 1.5 // LaTeX \fboxsep ≈ 3pt
+	fontSize := pdf.FontSizeBody - 2
+	
+	// Set font for measurement and rendering
+	state.fpdf.SetFont(pdf.FontBody, "I", fontSize)
+	state.fpdf.SetTextColor(150, 150, 150)
+	text := fmt.Sprintf("[Image: %s — %s]", label, reason)
+	
+	// Calculate text height using GetStringWidth and wrapping logic
+	// fpdf.MultiCell would handle wrapping, but we need height first
+	textWidth := w - (2 * padding)
+	lineWidth := state.fpdf.GetStringWidth(text)
+	numLines := 1
+	if lineWidth > textWidth {
+		// Estimate wrapped lines (conservative: assume average word length)
+		numLines = int((lineWidth / textWidth)) + 1
+	}
+	
+	// Height = padding + (lines × line height) + padding
+	// Minimum 2 lines to avoid cramped appearance
+	if numLines < 2 {
+		numLines = 2
+	}
+	textHeight := float64(numLines) * pdf.LineHeight
+	h := padding + textHeight + padding
+	
+	// Draw placeholder box
 	state.fpdf.SetDrawColor(200, 200, 200)
 	state.fpdf.SetFillColor(250, 250, 250)
 	state.fpdf.Rect(left, y, w, h, "FD")
-
-	state.fpdf.SetFont(pdf.FontBody, "I", pdf.FontSizeBody-1)
-	state.fpdf.SetTextColor(150, 150, 150)
-	text := fmt.Sprintf("[Image: %s \u2014 %s]", label, reason)
-	state.fpdf.SetXY(left+pdf.CodeBlockPadding, y+pdf.CodeBlockPadding)
-	state.fpdf.Write(pdf.LineHeight, text)
-
+	
+	// Render text with MultiCell for proper wrapping
+	state.fpdf.SetXY(left+padding, y+padding)
+	state.fpdf.MultiCell(textWidth, pdf.LineHeight, text, "", "L", false)
+	
 	state.fpdf.SetXY(left, y+h)
 	resetFont(state)
 }
