@@ -154,12 +154,25 @@ func renderTOC(state *renderState, entries []tocEntry) {
 			state.fpdf.SetFont(pdf.FontBody, "", fontSize)
 			// Position cursor at start of dots area (after gap)
 			state.fpdf.SetX(dotsStartX)
-			numDots := int(dotsWidth / dotSpacing)
+			
+			// Build dots string that fits exactly in available width
+			dotWidth := state.fpdf.GetStringWidth(".")
+			numDots := int(dotsWidth / dotWidth)
 			dots := ""
 			for j := 0; j < numDots; j++ {
 				dots += "."
 			}
-			// Render dots filling the available width, left-aligned within the cell
+			
+			// Render dots, but constrain to exact dotsWidth to prevent overflow
+			actualDotsWidth := state.fpdf.GetStringWidth(dots)
+			if actualDotsWidth > dotsWidth {
+				// Dots string is too wide, truncate by removing dots
+				for actualDotsWidth > dotsWidth && len(dots) > 0 {
+					dots = dots[:len(dots)-1]
+					actualDotsWidth = state.fpdf.GetStringWidth(dots)
+				}
+			}
+			// Render dots within the exact width (prevent overflow)
 			state.fpdf.CellFormat(dotsWidth, pdf.LineHeight, dots, "", 0, "L", false, 0, "")
 		} else {
 			// Not enough space for dots, just position cursor before page number box
