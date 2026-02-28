@@ -97,7 +97,7 @@ go install github.com/dlouwers/markdown2pdf/cmd/markdown2pdf@latest
 - **Smart inline code wrapping** — long code spans break at safe points (spaces, underscores, dots, slashes) with continuation indicators
 - **GFM tables** — alignment, borders, header styling, and automatic font scaling for wide tables (8+ columns)
 - **Lists** — ordered, unordered, and task lists with nested support
-- **Images** — PNG, JPEG, SVG, and base64 data URIs
+- **Images** — PNG, JPEG, SVG (local files, HTTP/HTTPS URLs, and base64 data URIs)
 
 ### Advanced Features
 
